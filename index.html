@@ -462,23 +462,59 @@
 </div>
 
 <div id="updateModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
-  <div class="modal-content">
+  <div class="modal-content update-modal-content">
     <button class="close-modal" id="closeUpdateModal" aria-label="إغلاق">×</button>
-    <h2 id="updateTitle">🔄 الإصدار 1.5.0</h2>
+    <div class="update-header">
+      <div class="update-badge-icon">🚀</div>
+      <div>
+        <h2 id="updateTitle" style="margin:0; font-size:1.3rem;">تحديثات وميزات الإصدار 1.5.0</h2>
+        <span class="version-subtitle">كل ما تم بناؤه وتطويره بالكامل</span>
+      </div>
+    </div>
     <div class="update-body">
-      <p>تم إصلاح الأساس وإضافة:</p>
-      <ul>
-        <li>✅ نظام حفظني جديد – استرجاع نشط + تكرار مكيّف + مراجعة الأخطاء</li>
-        <li>✅ تحسين النطق الصوتي (TTS) – English‑only</li>
-        <li>✅ إصلاح اختبار الصوت – تحديد لغة التعرف حسب الإجابة</li>
-        <li>✅ منع الانتقال التلقائي المزدوج</li>
-        <li>✅ منع تنفيذ الإجابة مرتين</li>
-        <li>✅ تحسين خيارات الاختبار – منع التكرار</li>
-        <li>✅ تحسين الحفظ المحلي – تجنب الكتابة فوق البيانات</li>
-        <li>✅ تحديث Service Worker – كاش جديد و network‑first</li>
-        <li>✅ إصلاح مشكلة الإدخال (input) – ثبات الخلفية في الوضعين</li>
-        <li>✅ ملخص جلسة حفظني مع إحصائيات مفصلة</li>
-      </ul>
+      <div class="update-section">
+        <h3 class="update-section-title">🧠 نظام حفظني والدروس التفاعلية الذكية</h3>
+        <ul class="update-list">
+          <li><strong>تقسيم الدروس التلقائي:</strong> تنظيم الكلمات تلقائيًا إلى مسارات دروس متدرجة (10 كلمات لكل درس).</li>
+          <li><strong>نمطا التعلم (يدوي / يومي):</strong> إمكانية فتح أي درس بحرية، أو الالتزام بنظام درس جديد يوميًا لتثبيت الحفظ.</li>
+          <li><strong>التكرار المكيّف والاسترجاع النشط:</strong> رصد الكلمات الصعبة وإعادة اختبارها حتى إتقانها 100%.</li>
+        </ul>
+      </div>
+
+      <div class="update-section">
+        <h3 class="update-section-title">🔥 ستريك الحفظ وعداد ساعات التعلم</h3>
+        <ul class="update-list">
+          <li><strong>سلسلة الستريك اليومي (Streak):</strong> تتبع الأيام المتتالية التي تدرس فيها وتحفيز الاستمرارية.</li>
+          <li><strong>عداد وقت الحفظ الفعلي:</strong> حساب دقيق لوقت المذاكرة داخل جلسات الحفظ وتحويلها لساعات ودقائق.</li>
+          <li><strong>شريط إحصائي مصغّر وموجز:</strong> عرض الستريك والوقت والنمط بشكل أنيق ومريح في صفحة حفظني.</li>
+        </ul>
+      </div>
+
+      <div class="update-section">
+        <h3 class="update-section-title">🔔 نظام إشعارات التذكير اليومية (24 ساعة)</h3>
+        <ul class="update-list">
+          <li><strong>تنبيهات تلقائية:</strong> إشعارك بلطف بعد مرور 24 ساعة دون فتح التطبيق في وضع الدروس اليومية.</li>
+          <li><strong>لوحة تحكم وتجربة إشعار:</strong> فحص حالة إذن المتصفح وتجربة إرسال إشعار فوري للتأكد من عمله.</li>
+        </ul>
+      </div>
+
+      <div class="update-section">
+        <h3 class="update-section-title">🎨 تحسينات المظهر والوضع الليلي (Dark Mode)</h3>
+        <ul class="update-list">
+          <li><strong>تناسق تام في الوضع الداكن:</strong> ضبط كامل للألوان والتباين العالي لمنع أي نصوص غير واضحة.</li>
+          <li><strong>بطاقات ملخص الجلسة والاحتفال:</strong> تصميم حديث يبرز إنجاز الدرس ونسبة النجاح والوقت المستغرق.</li>
+        </ul>
+      </div>
+
+      <div class="update-section">
+        <h3 class="update-section-title">⚡ إصلاحات واستقرار النظام الأساسي</h3>
+        <ul class="update-list">
+          <li><strong>تحسين النطق الصوتي (TTS):</strong> نطق نقي وسلس للكلمات الإنجليزية.</li>
+          <li><strong>إصلاح اختبار الصوت (STT):</strong> التعرف الدقيق على النطق عبر المايكروفون.</li>
+          <li><strong>حماية البيانات والتخزين المحلي:</strong> حفظ تلقائي محكم يمنع فقدان أو تداخل البيانات.</li>
+          <li><strong>دعم PWA والعمل بدون إنترنت:</strong> استجابة سريعة وتثبيت التطبيق على الشاشة الرئيسية.</li>
+        </ul>
+      </div>
     </div>
   </div>
 </div>
