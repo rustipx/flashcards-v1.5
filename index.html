@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#2563eb">
   <meta name="description" content="بطاقات كلمات للتعلم والمراجعة والاختبارات والتدريب الصوتي">
-  <title>📚 بطاقات الكلمات – v1.4.3</title>
+  <title>📚 بطاقات الكلمات – v1.5.0</title>
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icons/icon-192.png" type="image/png">
   <link rel="stylesheet" href="./style.css">
@@ -123,16 +123,83 @@
     <p class="subtitle">جلسة تعلم ذكية مع تكرار مكيّف ومراجعة الأخطاء</p>
   </div>
 
-  <div class="card hafazni-card" id="hafazniSetupCard">
+  <div class="hafazni-type-toggle" id="hafazniTypeToggle">
+    <button class="hafazni-tab-btn active" id="hafazniTabLessonsBtn" data-hafazni-tab="lessons" type="button">📚 مسار الدروس</button>
+    <button class="hafazni-tab-btn" id="hafazniTabCustomBtn" data-hafazni-tab="custom" type="button">🧠 جلسة مخصصة</button>
+  </div>
+
+  <div class="card hafazni-lessons-card" id="hafazniLessonsCard">
+    <!-- شريط الستريك والوقت السريع والمختصر -->
+    <div class="hafazni-quick-stats-bar" id="hafazniStreakBar">
+      <div class="quick-stat-chip" id="hafazniStreakItem" title="أيام الدراسة المتتالية">
+        <span class="chip-icon">🔥</span>
+        <div class="chip-text">
+          <span class="chip-val" id="hafazniStreakCount">0 يوم</span>
+          <span class="chip-lbl" id="hafazniStreakStatus">الستريك</span>
+        </div>
+      </div>
+      
+      <div class="quick-stat-chip" id="hafazniStudyTimeItem" title="إجمالي وقت الحفظ">
+        <span class="chip-icon">⏱️</span>
+        <div class="chip-text">
+          <span class="chip-val" id="hafazniStudyTimeCount">0 د</span>
+          <span class="chip-lbl">وقت الحفظ</span>
+        </div>
+      </div>
+
+      <div class="quick-stat-chip" id="hafazniCurrentModeBadge" title="نمط الدروس الحالي">
+        <span class="chip-icon" id="hafazniCurrentModeIcon">🗂️</span>
+        <div class="chip-text">
+          <span class="chip-val" id="hafazniCurrentModeLabel">يدوي</span>
+          <span class="chip-lbl">النمط</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="daily-notif-bar" id="hafazniDailyNotifBar" style="display:none;">
+      <span class="notif-icon">🔔</span>
+      <span class="notif-msg" id="hafazniDailyNotifMsg">تذكيرك بدرس اليوم بعد 24 ساعة من عدم الفتح</span>
+      <button class="notif-action-btn" id="hafazniEnableNotifBtn" type="button">تفعيل الإشعارات</button>
+    </div>
+    <p class="lessons-hint" id="hafazniLessonsHint">اختر أي درس تحب تبدأ بيه، أو خُد كل الدروس ورا بعض براحتك.</p>
+
+    <!-- صندوق ملخص التقدم في مسار الدروس -->
+    <div class="hafazni-map-progress-box" id="hafazniMapProgressBox">
+      <div class="map-progress-labels">
+        <span id="hafazniMapProgressTitle">🗺️ مسار الدروس</span>
+        <span id="hafazniMapProgressCount">0 / 0 مكتمل</span>
+      </div>
+      <div class="map-progress-bar-bg">
+        <div class="map-progress-bar-fill" id="hafazniMapProgressBarFill"></div>
+      </div>
+    </div>
+
+    <!-- مسار الدروس المتعرج المرسوم بـ SVG -->
+    <div class="lesson-map-winding-wrapper" id="hafazniWindingWrapper">
+      <svg class="lesson-map-svg" id="hafazniMapSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="lesson-path-nodes" id="hafazniLessonPath"></div>
+    </div>
+
+    <div class="today-words-card" id="hafazniTodayWordsCard" style="display:none;">
+      <div class="today-words-header">
+        <h4 id="hafazniTodayWordsTitle">📋 كلمات الدرس الحالي</h4>
+        <button class="ctrl-btn primary small-btn" id="startCurrentLessonDirectBtn" type="button">🚀 ابدأ هذا الدرس</button>
+      </div>
+      <ul class="today-words-list" id="hafazniTodayWordsList"></ul>
+    </div>
+  </div>
+
+  <div class="card hafazni-card" id="hafazniSetupCard" style="display:none;">
     <div class="hafazni-icon">🧠</div>
-    <h3>طريقة حفظني</h3>
-    <p>نظام يعتمد على الاسترجاع النشط والتكرار المتباعد. يركّز على الكلمات التي تخطئ فيها ويعيد عرضها بذكاء حتى تثبت.</p>
+    <h3>جلسة مخصصة</h3>
+    <p>أو اختر كلمات بنفسك من صفحة "الكلمات" واعمل جلسة حفظني حرة بيها، بنفس نظام الاسترجاع النشط والتكرار المتباعد.</p>
     <div class="hafazni-stats">
       <span>مختارة: <strong id="hafazniSelectedCount">0</strong></span>
       <span>متبقي: <strong id="hafazniRemainingCount">0</strong></span>
     </div>
     <button class="ctrl-btn primary wide-btn" id="startHafazniBtn">🚀 ابدأ حفظني</button>
     <button class="ctrl-btn wide-btn" id="reviewMistakesBtn">🔁 راجع الأخطاء</button>
+    <button class="ctrl-btn wide-btn" id="selectWordsForHafazniBtn" style="margin-top:8px;">📋 اختر كلمات من القائمة</button>
   </div>
 
   <div class="hafazni-session" id="hafazniSession" style="display:none;">
@@ -162,6 +229,20 @@
   <div class="hafazni-summary" id="hafazniSummary" style="display:none;">
     <div class="card">
       <h3>📊 ملخص الجلسة</h3>
+      <p class="lesson-complete-note" id="lessonCompleteNote" style="display:none;">🎉 أتممت الدرس <span id="completedLessonNumber"></span>!</p>
+      
+      <!-- شارة احتفال الستريك ووقت الجلسة -->
+      <div class="summary-streak-celebration" id="summaryStreakCelebration">
+        <div class="celebration-item streak-glow">
+          <span class="cel-icon">🔥</span>
+          <span class="cel-text" id="summaryStreakText">ستريك: 1 يوم متتالي</span>
+        </div>
+        <div class="celebration-item time-glow">
+          <span class="cel-icon">⏱️</span>
+          <span class="cel-text" id="summarySessionTimeText">وقت الجلسة: 0 دقيقة</span>
+        </div>
+      </div>
+
       <div class="summary-grid">
         <div class="summary-item"><span class="summary-label">✅ صحيحة</span><span class="summary-value" id="summaryCorrect">0</span></div>
         <div class="summary-item"><span class="summary-label">❌ خاطئة</span><span class="summary-value" id="summaryWrong">0</span></div>
@@ -173,6 +254,7 @@
         <p><strong>📕 تحتاج مراجعة:</strong> <span id="summaryNeedsReview">0</span></p>
         <p><strong>🔴 الأخطاء:</strong> <span id="summaryMistakes">0</span></p>
       </div>
+      <button class="ctrl-btn primary wide-btn" id="nextLessonBtn" style="display:none;">➡️ الدرس التالي</button>
       <button class="ctrl-btn primary wide-btn" id="summaryReviewBtn">🔁 راجع الأخطاء</button>
       <button class="ctrl-btn wide-btn" id="summaryCloseBtn">✔️ إغلاق</button>
     </div>
@@ -230,6 +312,37 @@
   </div>
 
   <div class="settings-group">
+    <label class="settings-label">وضع دروس حفظني</label>
+    <div class="lessons-mode-toggle">
+      <button class="mode-toggle-btn active" id="hafazniModeManualBtn" data-hafazni-mode="manual" type="button">🗂️ يدوي</button>
+      <button class="mode-toggle-btn" id="hafazniModeDailyBtn" data-hafazni-mode="daily" type="button">📅 دروس يومية</button>
+    </div>
+    <p class="settings-hint" id="hafazniModeSettingsHint">اختر أي درس تحب بنفسك، أو خلّي التطبيق يفتحلك درس جديد كل يوم تلقائيًا.</p>
+  </div>
+
+  <div class="settings-group" id="notificationSettingsGroup">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <label class="settings-label" style="margin-bottom:0;">🔔 إشعارات التذكير بالدروس اليومية</label>
+      <span class="notif-state-badge" id="notificationStateBadge">مفعلة ✓</span>
+    </div>
+    <p class="settings-hint" style="margin-top:0; margin-bottom:12px;">إشعار يذكرك بدرس اليوم تلقائيًا إذا مرّت 24 ساعة دون فتح التطبيق (في وضع الدروس اليومية).</p>
+    
+    <div class="notif-status-box" id="notificationStatusBox">
+      <div class="notif-status-header">
+        <span id="notifStatusIndicatorIcon">🟢</span>
+        <span id="notifStatusIndicatorTitle">حالة الإشعارات: مفعلة بنجاح</span>
+      </div>
+      <p class="notif-status-text" id="notificationStatusText">الإشعارات مفعلة. سننبهك كل 24 ساعة عند غيابك لتثبيت درس اليوم.</p>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+      <button class="ctrl-btn primary" id="toggleNotificationsBtn" type="button">🔔 تفعيل إشعارات التذكير (24 ساعة)</button>
+      <button class="ctrl-btn" id="testNotificationBtn" type="button">🧪 تجربة إرسال إشعار الآن</button>
+    </div>
+    <p id="testNotificationFeedback" class="test-feedback-msg" style="display:none;"></p>
+  </div>
+
+  <div class="settings-group">
     <label class="settings-label">المظهر</label>
     <button class="ctrl-btn" id="darkToggleBtn">🌙 الوضع الداكن</button>
   </div>
@@ -246,7 +359,7 @@
       <input type="email" name="email" placeholder="بريدك الإلكتروني *" required>
       <textarea name="message" rows="4" placeholder="اكتب رأيك أو اقتراحك..." required></textarea>
       <input type="hidden" name="access_key" value="c1d4a19f-7583-47ee-a733-db6276493109">
-      <input type="hidden" name="subject" value="رأي جديد من تطبيق الكلمات v1.4.3">
+      <input type="hidden" name="subject" value="رأي جديد من تطبيق الكلمات v1.5.0">
       <button type="submit" class="ctrl-btn primary">📨 إرسال الرأي</button>
     </form>
     <div id="feedbackSuccess" class="form-message success" style="display:none;"></div>
@@ -255,7 +368,7 @@
 
   <div class="settings-group">
     <label class="settings-label">معلومات الإصدار</label>
-    <p class="version-text">الإصدار الحالي: <strong>1.4.3</strong></p>
+    <p class="version-text">الإصدار الحالي: <strong>1.5.0</strong></p>
     <button class="ctrl-btn" id="viewFeaturesBtn">📋 عرض ميزات هذا الإصدار</button>
   </div>
 
@@ -278,26 +391,72 @@
 
 <nav class="bottom-nav">
   <button class="nav-btn active" data-page="homePage"><span class="nav-icon">🏠</span><span class="nav-label">الرئيسية</span></button>
-  <button class="nav-btn" data-page="studyPage"><span class="nav-icon">🃏</span><span class="nav-label">دراسة</span></button>
-  <button class="nav-btn" data-page="testPage"><span class="nav-icon">✍️</span><span class="nav-label">اختبار</span></button>
   <button class="nav-btn" data-page="hafazniPage"><span class="nav-icon">🧠</span><span class="nav-label">حفظني</span></button>
   <button class="nav-btn" data-page="wordsPage"><span class="nav-icon">📋</span><span class="nav-label">الكلمات</span></button>
   <button class="nav-btn" data-page="settingsPage"><span class="nav-icon">⚙️</span><span class="nav-label">إعدادات</span></button>
 </nav>
 
-<div class="version-badge">v1.4.3</div>
+<div class="version-badge">v1.5.0</div>
 
 <div id="helpModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
-  <div class="modal-content">
+  <div class="modal-content help-modal-content">
     <button class="close-modal" id="closeHelpModal" aria-label="إغلاق">×</button>
-    <h2 id="helpTitle">❓ دليل الاستخدام</h2>
+    <div class="help-header">
+      <div class="help-badge-icon">📖</div>
+      <div>
+        <h2 id="helpTitle" style="margin:0; font-size:1.3rem;">دليل استخدام التطبيق</h2>
+        <p style="margin:4px 0 0; font-size:0.82rem; color:var(--text-secondary);">كل ما تحتاجه لتجربة حفظ ومراجعة ذكية وسريعة</p>
+      </div>
+    </div>
+
     <div class="help-body">
-      <p><strong>1. رفع الكلمات:</strong> اختر TXT أو CSV. الصيغ المدعومة: English, Arabic أو English = Arabic.</p>
-      <p><strong>2. الدراسة:</strong> اقلب البطاقة، اسمع النطق، تنقّل أو استخدم المستحق والصعب.</p>
-      <p><strong>3. الاختبار:</strong> كتابة، اختيارات، أو صوت. الصوت يعتمد على Speech Recognition في المتصفح.</p>
-      <p><strong>4. الكلمات:</strong> أضف كلمات يدويًا أو استورد ملفًا من داخل صفحة الكلمات، ثم حدّد ما تريد في "حفظني".</p>
-      <p><strong>5. حفظني:</strong> نظام ذكي يعيد عرض الكلمات التي تخطئ فيها، مع تكرار مكيّف ومراجعة الأخطاء.</p>
-      <p><strong>6. الحفظ:</strong> كل تغيير يُحفظ تلقائيًا داخل المتصفح. النسخة الاحتياطية تحفظ الكلمات والتقدم والإعدادات.</p>
+      <div class="help-card">
+        <div class="help-card-icon">🧠</div>
+        <div class="help-card-info">
+          <h4>1. نظام "حفظني" والدروس الذكية</h4>
+          <p>مسار مقسم لدروس (10 كلمات لكل درس). يمكنك اختيار وضع <strong>"يدوي"</strong> لتصفح وحفظ أي درس متى شئت، أو وضع <strong>"دروس يومية"</strong> لفتح درس جديد كل يوم وتثبيته.</p>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="help-card-icon">🔥</div>
+        <div class="help-card-info">
+          <h4>2. الستريك اليومي وعداد ساعات الحفظ</h4>
+          <p>يكافئك الستريك على دراستك المتواصلة يومًا بعد يوم. كما يتم حساب وقت الحفظ الفعلي وتحويله لساعات ودقائق لتتبع مجهودك بدقة.</p>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="help-card-icon">🔔</div>
+        <div class="help-card-info">
+          <h4>3. إشعارات التذكير (24 ساعة)</h4>
+          <p>في وضع الدروس اليومية، يرسل التطبيق إشعارًا لطيفًا إذا مرّت 24 ساعة دون فتح التطبيق لتذكيرك بدرس اليوم وتثبيته دون نسيان.</p>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="help-card-icon">🃏</div>
+        <div class="help-card-info">
+          <h4>4. بطاقات الاستذكار (Flashcards)</h4>
+          <p>اقلب البطاقة بالنقر لمعرفة المعنى باللغة الأخرى، واسمع النطق الصوتي الصحيح، وحدد حالة الكلمة (متقنة، صعبة، أو جديدة).</p>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="help-card-icon">✍️</div>
+        <div class="help-card-info">
+          <h4>5. أوضاع الاختبار المتنوعة</h4>
+          <p>اختبر حفظك بثلاث طرق: <strong>الكتابة</strong> (كتابة الكلمة يدويًا)، <strong>الخيارات</strong> (اختيار الترجمة الصحيحة)، أو <strong>الصوت</strong> (نطق الكلمة بالمايكروفون).</p>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="help-card-icon">📥</div>
+        <div class="help-card-info">
+          <h4>6. إضافة واستيراد الكلمات</h4>
+          <p>أضف كلماتك واحدة تلو الأخرى، أو اسحب وأفلت ملف TXT أو CSV بالصيغة: <code>English, Arabic</code> أو <code>English = Arabic</code>.</p>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -305,7 +464,7 @@
 <div id="updateModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
   <div class="modal-content">
     <button class="close-modal" id="closeUpdateModal" aria-label="إغلاق">×</button>
-    <h2 id="updateTitle">🔄 الإصدار 1.4.3</h2>
+    <h2 id="updateTitle">🔄 الإصدار 1.5.0</h2>
     <div class="update-body">
       <p>تم إصلاح الأساس وإضافة:</p>
       <ul>

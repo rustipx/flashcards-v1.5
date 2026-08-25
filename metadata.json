@@ -1,0 +1,10 @@
+{
+  "name": "بطاقات الكلمات الذكية",
+  "description": "تطبيق بطاقات كلمات للمفردات مع دراسة واختبارات وصوت ونظام حفظني ومسار دروس متعرج وتنبيهات يومية",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

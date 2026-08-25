@@ -1,4 +1,4 @@
-const CACHE_NAME = 'flashcards-v1.4.3';
+const CACHE_NAME = 'flashcards-v1.5.0';
 // ملفات أساسية: التطبيق لا يعمل offline بدونها إطلاقًا
 const CRITICAL_ASSETS = [
   './',
@@ -79,6 +79,24 @@ self.addEventListener('fetch', event => {
         .catch(() => cached);
 
       return cached || network;
+    })
+  );
+});
+
+// التعامل مع النقر على إشعار التذكير اليومي
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.navigate('./#hafazniPage');
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow('./#hafazniPage');
+      }
     })
   );
 });
