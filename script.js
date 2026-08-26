@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '1.5.0';
+  const APP_VERSION = '1.5.1';
   const STORAGE_KEY = 'flashcards_v1_4';
   const OLD_STORAGE_KEYS = ['flashcards_v2'];
   const UPDATE_KEY = 'flashcards_last_seen_version';
@@ -10,6 +10,7 @@
     vocabulary: [],
     currentIndex: 0,
     studyFilter: 'all',
+    categoryFilter: 'all',
     filteredVocab: [],
     direction: 'en-ar',
     dark: false,
@@ -23,17 +24,22 @@
       sessionWords: [],      // array of session word objects with temp data
       currentIndex: 0,
       totalWords: 0,
-      activeLessonId: null,  // رقم الدرس الحالي لو الجلسة اتفتحت من خريطة الدروس
+      activeLessonId: null,  // رقم الدرس أو التقييم الحالي لو الجلسة اتفتحت من خريطة المسار
       mistakes: [],
       processing: false,
       summary: { correct: 0, wrong: 0, attempts: 0, mastered: [], needsReview: [] }
     },
     hafazniLessons: {
-      mode: 'manual',            // 'manual' أو 'daily'
-      lessonSize: 10,            // عدد الكلمات في كل درس
-      completedLessonIds: [],    // أرقام الدروس المكتملة
-      dailyUnlockedCount: 1,     // عدد الدروس المفتوحة في الوضع اليومي
-      lastUnlockDate: null       // آخر يوم تم فيه فتح درس جديد تلقائيًا
+      pathCreated: false,        // true لو المستخدم أنشأ المسار بعد تحديد الخيارات
+      lessonSize: 10,            // عدد الكلمات في كل درس (5, 10, 15, 20)
+      checkpointFrequency: 20,   // تكرار اختبار التقييم الشامل (15, 20, 30, 40)
+      completedLessonIds: [],    // أرقام العقد أو الدروس المكتملة بالتسلسل
+      completedCheckpoints: [],  // محطات التقييم المكتملة
+      notificationTime: '20:00'  // موعد التذكير المفضل
+    },
+    wotd: {
+      wordId: null,
+      dateStr: null
     },
     hafazniTab: 'lessons',       // 'lessons' أو 'custom'
     streak: {
@@ -49,6 +55,8 @@
     },
     notifications: {
       enabled: false,
+      time: '20:00',
+      lastScheduledDate: null,
       lastActivityTime: Date.now(),
       lastReminderTime: null
     },
@@ -74,8 +82,8 @@
       'voicePanel','recordBtn','voiceState','voiceResult','testFeedback','checkBtn','hintBtn','skipBtn',
       'markDifficultBtn','typeWritingBtn','typeChoiceBtn','typeVoiceBtn','enToArBtn','arToEnBtn',
       'darkToggleBtn','helpSettingsBtn','helpModal','closeHelpModal',
-      'updateModal','closeUpdateModal','viewFeaturesBtn','wordList','searchInput','newEnglish','newArabic',
-      'addWordBtn','importTextBtn','textImportInput','exportBackupBtn','importBackupBtn','backupInput',
+      'updateModal','closeUpdateModal','viewFeaturesBtn','wordList','searchInput','newEnglish','newArabic','newCategory',
+      'categoryFilterBar','addWordBtn','importTextBtn','textImportInput','exportBackupBtn','importBackupBtn','backupInput',
       'selectAllBtn','clearSelectionBtn','sendToHafazniBtn','selectedWordsCount','downloadWordsBtn',
       'resetProgressBtn','resetBtn','feedbackForm','feedbackSuccess','feedbackError','hafazniSelectedCount',
       'hafazniRemainingCount','startHafazniBtn','reviewMistakesBtn','hafazniSession','hafazniProgressText',
@@ -84,7 +92,7 @@
       'hafazniSetupCard','hafazniSummary','summaryCorrect','summaryWrong','summaryRate','summaryAttempts',
       'summaryMastered','summaryNeedsReview','summaryMistakes','summaryReviewBtn','summaryCloseBtn',
       'hafazniQuestionTypeLabel','hafazniOptionsGrid','hafazniWordStats','hafazniAttempts','hafazniMastery',
-      'hafazniLessonsCard','hafazniModeManualBtn','hafazniModeDailyBtn','hafazniLessonsHint','hafazniLessonPath',
+      'hafazniLessonsCard','hafazniLessonsHint','hafazniLessonPath',
       'hafazniTodayWordsCard','hafazniTodayWordsTitle','hafazniTodayWordsList',
       'lessonCompleteNote','completedLessonNumber','nextLessonBtn',
       'hafazniTypeToggle','hafazniTabLessonsBtn','hafazniTabCustomBtn','selectWordsForHafazniBtn',
@@ -96,8 +104,20 @@
       'notifStatusIndicatorTitle','testNotificationFeedback','hafazniModeSettingsHint',
       'hafazniStreakBar','hafazniStreakItem','hafazniStreakCount','hafazniStreakStatus',
       'hafazniStudyTimeItem','hafazniStudyTimeCount',
-      'hafazniCurrentModeBadge','hafazniCurrentModeIcon','hafazniCurrentModeLabel',
-      'summaryStreakCelebration','summaryStreakText','summarySessionTimeText'
+      'summaryStreakCelebration','summaryStreakText','summarySessionTimeText',
+      // عناصر ميزات 1.5.1 الجديدة:
+      'wordOfTheDayCard','wotdDate','wotdRefreshBtn','wotdBody','wotdEnglish','wotdArabic',
+      'wotdPronounceBtn','wotdTag','wotdStatus','wotdStudyBtn','wotdTestBtn','wotdLearnedBtn','wotdEmpty',
+      'hafazniReconfigureBtn','hafazniPathWizardBox','hafazniPathActiveView',
+      'wizardLessonSizeOptions','wizardCheckpointOptions','wizardNotifTime',
+      'generatePathBtn','cancelWizardBtn','settingsNotifTime','settingsQuickTimeChips',
+      // عناصر نافذة تعديل الكلمة والتصنيف:
+      'editWordModal','closeEditWordModal','editWordForm','editWordId','editEnglishInput',
+      'editArabicInput','editCategoryInput','quickCategorySuggestions','saveEditWordBtn','cancelEditWordBtn',
+      // عناصر نافذة مشاركة الكلمة:
+      'wotdShareBtn','shareWordModal','closeShareWordModal','shareWordModalTitle','sharePreviewEnglish',
+      'sharePreviewArabic','sharePreviewCategory','shareCopyBtn','shareWhatsappBtn',
+      'shareTelegramBtn','shareTwitterBtn','shareNativeBtn','shareCopyToast'
     ].forEach(id => el[id] = $(id));
   }
 
@@ -118,10 +138,18 @@
     const source = word || {};
     const english = String(source.english ?? '').trim();
     const arabic = String(source.arabic ?? '').trim();
+    const rawCategory = source.category || (Array.isArray(source.tags) ? source.tags[0] : (source.tag || 'عام'));
+    const category = String(rawCategory || 'عام').trim() || 'عام';
+    const tags = Array.isArray(source.tags) && source.tags.length
+      ? source.tags.map(t => String(t).trim()).filter(Boolean)
+      : [category];
+
     return {
       id: String(source.id || uid()),
       english: english || '?',
       arabic: arabic || '⚠️',
+      category: category,
+      tags: tags,
       status: ['new', 'learned', 'difficult'].includes(source.status) ? source.status : 'new',
       interval: Math.max(0, safeNumber(source.interval, 0)),
       lastReview: source.lastReview ? safeNumber(source.lastReview, null) : null,
@@ -177,6 +205,7 @@
       vocabulary: state.vocabulary,
       currentIndex: state.currentIndex,
       studyFilter: state.studyFilter,
+      categoryFilter: state.categoryFilter,
       direction: state.direction,
       dark: state.dark,
       currentPage: state.currentPage,
@@ -184,6 +213,7 @@
       selectedIds: state.selectedIds,
       hafazniLessons: state.hafazniLessons,
       hafazniTab: state.hafazniTab || 'lessons',
+      wotd: state.wotd,
       streak: state.streak,
       studyTime: state.studyTime,
       notifications: state.notifications
@@ -220,6 +250,7 @@
       state.currentIndex = Math.max(0, safeNumber(data.currentIndex, 0));
       state.studyFilter = ['all','due','difficult'].includes(data.studyFilter)
         ? data.studyFilter : 'all';
+      state.categoryFilter = typeof data.categoryFilter === 'string' ? data.categoryFilter : 'all';
       state.direction = data.direction === 'ar-en' ? 'ar-en' : 'en-ar';
       state.dark = Boolean(data.dark);
       state.currentPage = document.getElementById(data.currentPage) ? data.currentPage : 'homePage';
@@ -228,16 +259,24 @@
       state.selectedIds = Array.isArray(data.selectedIds) ? data.selectedIds.map(String) : [];
       const savedLessons = data.hafazniLessons || {};
       state.hafazniLessons = {
-        mode: savedLessons.mode === 'daily' ? 'daily' : 'manual',
+        pathCreated: Boolean(savedLessons.pathCreated),
         lessonSize: Number.isFinite(savedLessons.lessonSize) && savedLessons.lessonSize > 0
           ? savedLessons.lessonSize : 10,
+        checkpointFrequency: Number.isFinite(savedLessons.checkpointFrequency) && savedLessons.checkpointFrequency > 0
+          ? savedLessons.checkpointFrequency : 20,
         completedLessonIds: Array.isArray(savedLessons.completedLessonIds)
-          ? savedLessons.completedLessonIds.filter(n => Number.isFinite(n)) : [],
-        dailyUnlockedCount: Number.isFinite(savedLessons.dailyUnlockedCount) && savedLessons.dailyUnlockedCount > 0
-          ? savedLessons.dailyUnlockedCount : 1,
-        lastUnlockDate: typeof savedLessons.lastUnlockDate === 'string' ? savedLessons.lastUnlockDate : null
+          ? savedLessons.completedLessonIds.map(String) : [],
+        completedCheckpoints: Array.isArray(savedLessons.completedCheckpoints)
+          ? savedLessons.completedCheckpoints.map(String) : [],
+        notificationTime: typeof savedLessons.notificationTime === 'string' && savedLessons.notificationTime
+          ? savedLessons.notificationTime : '20:00'
       };
       state.hafazniTab = data.hafazniTab === 'custom' ? 'custom' : 'lessons';
+      const savedWotd = data.wotd || {};
+      state.wotd = {
+        wordId: savedWotd.wordId || null,
+        dateStr: savedWotd.dateStr || null
+      };
       const savedStreak = data.streak || {};
       state.streak = {
         current: Math.max(0, safeNumber(savedStreak.current, 0)),
@@ -254,6 +293,8 @@
       const savedNotifs = data.notifications || {};
       state.notifications = {
         enabled: Boolean(savedNotifs.enabled),
+        time: typeof savedNotifs.time === 'string' && savedNotifs.time ? savedNotifs.time : state.hafazniLessons.notificationTime || '20:00',
+        lastScheduledDate: typeof savedNotifs.lastScheduledDate === 'string' ? savedNotifs.lastScheduledDate : null,
         lastActivityTime: Number.isFinite(savedNotifs.lastActivityTime) ? savedNotifs.lastActivityTime : Date.now(),
         lastReminderTime: Number.isFinite(savedNotifs.lastReminderTime) ? savedNotifs.lastReminderTime : null
       };
@@ -356,8 +397,195 @@
     return '📝 جديدة';
   }
 
+  function getWordOfTheDay(forceNew = false) {
+    if (!state.vocabulary || !state.vocabulary.length) return null;
+    const today = getLocalDateStr();
+
+    if (!forceNew && state.wotd.wordId && state.wotd.dateStr === today) {
+      const existing = state.vocabulary.find(w => w.id === state.wotd.wordId);
+      if (existing) return existing;
+    }
+
+    let selected = null;
+    if (!forceNew) {
+      let hash = 0;
+      for (let i = 0; i < today.length; i++) {
+        hash = ((hash << 5) - hash) + today.charCodeAt(i);
+        hash |= 0;
+      }
+      const idx = Math.abs(hash) % state.vocabulary.length;
+      selected = state.vocabulary[idx];
+    } else {
+      const candidates = state.vocabulary.filter(w => w.id !== state.wotd.wordId);
+      const pool = candidates.length ? candidates : state.vocabulary;
+      selected = pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    if (selected) {
+      state.wotd.wordId = selected.id;
+      state.wotd.dateStr = today;
+      saveState();
+    }
+    return selected;
+  }
+
+  function renderWordOfTheDay(forceNew = false) {
+    if (!el.wordOfTheDayCard) return;
+    const word = getWordOfTheDay(forceNew);
+
+    if (!word) {
+      if (el.wotdBody) el.wotdBody.style.display = 'none';
+      if (el.wotdEmpty) el.wotdEmpty.style.display = 'block';
+      return;
+    }
+
+    if (el.wotdBody) el.wotdBody.style.display = 'block';
+    if (el.wotdEmpty) el.wotdEmpty.style.display = 'none';
+
+    if (el.wotdDate) {
+      const d = new Date();
+      try {
+        el.wotdDate.textContent = d.toLocaleDateString('ar-SA', { weekday: 'short', month: 'short', day: 'numeric' });
+      } catch (e) {
+        el.wotdDate.textContent = getLocalDateStr();
+      }
+    }
+
+    if (el.wotdEnglish) el.wotdEnglish.textContent = word.english;
+    if (el.wotdArabic) el.wotdArabic.textContent = word.arabic;
+    if (el.wotdTag) el.wotdTag.textContent = `🏷️ ${word.category || 'عام'}`;
+
+    if (el.wotdStatus) {
+      el.wotdStatus.textContent = getStatusLabel(word.status);
+      el.wotdStatus.className = `wotd-status-pill ${word.status}`;
+    }
+
+    if (el.wotdLearnedBtn) {
+      el.wotdLearnedBtn.textContent = word.status === 'learned' ? '✅ تم حفظها' : '✅ حفظتها اليوم';
+    }
+  }
+
+  // ==================== نظام مشاركة الكلمات كنص منسق (Share Word System) ====================
+  let activeShareWord = null;
+
+  function getFormattedShareText(word) {
+    if (!word) return '';
+    const cat = (word.category || 'عام').trim() || 'عام';
+    return `🌟 كلمة اليوم الإنجليزية:
+🇬🇧 الكلمة: ${word.english}
+🇸🇦 الترجمة: ${word.arabic}
+🏷️ التصنيف: ${cat}
+
+📚 تعلم واحفظ المفردات الإنجليزية بذكاء وسرعة!`;
+  }
+
+  function openShareWordModal(word) {
+    if (!word) word = getWordOfTheDay();
+    if (!word) {
+      alert('لا توجد كلمة محددة للمشاركة.');
+      return;
+    }
+    activeShareWord = word;
+
+    if (el.sharePreviewEnglish) el.sharePreviewEnglish.textContent = word.english;
+    if (el.sharePreviewArabic) el.sharePreviewArabic.textContent = word.arabic;
+    if (el.sharePreviewCategory) el.sharePreviewCategory.textContent = `🏷️ ${word.category || 'عام'}`;
+    if (el.shareCopyToast) el.shareCopyToast.style.display = 'none';
+
+    if (el.shareNativeBtn) {
+      el.shareNativeBtn.style.display = (navigator && navigator.share) ? 'inline-flex' : 'none';
+    }
+
+    if (el.shareWordModal) {
+      el.shareWordModal.style.display = 'flex';
+    }
+  }
+
+  function closeShareWordModal() {
+    if (el.shareWordModal) {
+      el.shareWordModal.style.display = 'none';
+    }
+    activeShareWord = null;
+  }
+
+  function copyFormattedWord() {
+    if (!activeShareWord) return;
+    const text = getFormattedShareText(activeShareWord);
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showCopyToast();
+      }).catch(() => {
+        fallbackCopyText(text);
+      });
+    } else {
+      fallbackCopyText(text);
+    }
+  }
+
+  function fallbackCopyText(text) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showCopyToast();
+    } catch (e) {
+      alert('تم تجهيز النص:\n\n' + text);
+    }
+  }
+
+  function showCopyToast() {
+    if (el.shareCopyToast) {
+      el.shareCopyToast.style.display = 'block';
+      setTimeout(() => {
+        if (el.shareCopyToast) el.shareCopyToast.style.display = 'none';
+      }, 2500);
+    }
+  }
+
+  function shareToWhatsapp() {
+    if (!activeShareWord) return;
+    const text = getFormattedShareText(activeShareWord);
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  function shareToTelegram() {
+    if (!activeShareWord) return;
+    const text = getFormattedShareText(activeShareWord);
+    const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  function shareToTwitter() {
+    if (!activeShareWord) return;
+    const text = getFormattedShareText(activeShareWord);
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  async function shareNative() {
+    if (!activeShareWord || !navigator.share) return;
+    const text = getFormattedShareText(activeShareWord);
+    try {
+      await navigator.share({
+        title: `كلمة اليوم: ${activeShareWord.english}`,
+        text: text
+      });
+    } catch (e) {
+      // User cancelled
+    }
+  }
+
   function updateAllViews() {
     updateStats();
+    renderWordOfTheDay();
     updateStudyView();
     updateTestView();
     if (typeof renderWordList === 'function') renderWordList(state.search);
@@ -1071,27 +1299,36 @@
 
       let english = '';
       let arabic = '';
+      let category = 'عام';
 
       const csv = parseCSVLine(line);
-      if (csv.length >= 2) {
-        english = csv.shift().trim();
-        arabic = csv.join(',').trim();
+      if (csv.length >= 3) {
+        english = csv[0].trim();
+        arabic = csv[1].trim();
+        category = csv[2].trim() || 'عام';
+      } else if (csv.length === 2) {
+        english = csv[0].trim();
+        arabic = csv[1].trim();
       } else if (line.includes('=')) {
         const parts = line.split('=');
-        english = parts.shift().trim();
-        arabic = parts.join('=').trim();
+        english = parts[0]?.trim() || '';
+        arabic = parts[1]?.trim() || '';
+        if (parts[2]) category = parts[2].trim() || 'عام';
       } else if (line.includes('→')) {
         const parts = line.split('→');
-        english = parts.shift().trim();
-        arabic = parts.join('→').trim();
+        english = parts[0]?.trim() || '';
+        arabic = parts[1]?.trim() || '';
+        if (parts[2]) category = parts[2].trim() || 'عام';
       } else if (line.includes(' - ')) {
         const parts = line.split(' - ');
-        english = parts.shift().trim();
-        arabic = parts.join(' - ').trim();
+        english = parts[0]?.trim() || '';
+        arabic = parts[1]?.trim() || '';
+        if (parts[2]) category = parts[2].trim() || 'عام';
       } else if (line.includes('\t')) {
         const parts = line.split('\t');
-        english = parts.shift().trim();
-        arabic = parts.join('\t').trim();
+        english = parts[0]?.trim() || '';
+        arabic = parts[1]?.trim() || '';
+        if (parts[2]) category = parts[2].trim() || 'عام';
       } else {
         english = line;
         arabic = '⚠️';
@@ -1100,11 +1337,14 @@
       english = english.replace(/^["']|["']$/g, '').trim();
       arabic = arabic.replace(/^["']|["']$/g, '').trim();
       arabic = arabic.replace(/\bNaN\b/gi, '').trim() || '⚠️';
+      category = category.replace(/^["']|["']$/g, '').trim() || 'عام';
 
       if (!english) english = '?';
       result.push(normalizeWord({
         english,
         arabic,
+        category,
+        tags: [category],
         status: 'new',
         interval: 0,
         lastReview: null,
@@ -1152,8 +1392,9 @@
       state.selectedIds = state.vocabulary.filter(w => w.selected).map(w => w.id);
       state.currentIndex = 0;
       state.studyFilter = 'all';
+      state.categoryFilter = 'all';
       state.search = '';
-      el.searchInput.value = '';
+      if (el.searchInput) el.searchInput.value = '';
       saveState(true);
       updateAllViews();
       alert(`✅ تم تحميل ${incoming.length} كلمة بنجاح.`);
@@ -1167,6 +1408,7 @@
   function addWord() {
     const english = el.newEnglish.value.trim();
     const arabic = el.newArabic.value.trim();
+    const category = (el.newCategory?.value || '').trim() || 'عام';
 
     if (!english || !arabic) {
       alert('اكتب الكلمة الإنجليزية والترجمة معًا.');
@@ -1182,16 +1424,17 @@
       return;
     }
 
-    state.vocabulary.push(normalizeWord({ english, arabic }));
+    state.vocabulary.push(normalizeWord({ english, arabic, category, tags: [category] }));
     el.newEnglish.value = '';
     el.newArabic.value = '';
+    if (el.newCategory) el.newCategory.value = '';
     saveState(true);
     updateAllViews();
     el.newEnglish.focus();
   }
 
-  function cycleStatus(index) {
-    const word = state.vocabulary[index];
+  function cycleStatus(wordOrId) {
+    const word = typeof wordOrId === 'object' ? wordOrId : state.vocabulary.find(w => w.id === wordOrId || w === wordOrId);
     if (!word) return;
     word.status = word.status === 'new' ? 'learned' : word.status === 'learned' ? 'difficult' : 'new';
     if (word.status === 'new') {
@@ -1202,29 +1445,175 @@
     updateAllViews();
   }
 
-  function deleteWord(index) {
-    const word = state.vocabulary[index];
+  function deleteWord(wordOrId) {
+    const idx = typeof wordOrId === 'number' ? wordOrId : state.vocabulary.findIndex(w => w.id === wordOrId || w === wordOrId);
+    if (idx < 0) return;
+    const word = state.vocabulary[idx];
     if (!word) return;
     if (!confirm(`حذف "${word.english}"؟`)) return;
 
-    state.vocabulary.splice(index, 1);
+    state.vocabulary.splice(idx, 1);
     state.selectedIds = state.vocabulary.filter(w => w.selected).map(w => w.id);
     state.currentIndex = Math.min(state.currentIndex, Math.max(0, getStudyList().length - 1));
     saveState(true);
     updateAllViews();
   }
 
+  function getUniqueCategories() {
+    const map = new Map();
+    state.vocabulary.forEach(w => {
+      const cat = (w.category || 'عام').trim() || 'عام';
+      map.set(cat, (map.get(cat) || 0) + 1);
+    });
+    return map;
+  }
+
+  function openEditWordModal(wordId) {
+    const word = state.vocabulary.find(w => w.id === wordId);
+    if (!word) return;
+
+    if (el.editWordId) el.editWordId.value = word.id;
+    if (el.editEnglishInput) el.editEnglishInput.value = word.english;
+    if (el.editArabicInput) el.editArabicInput.value = word.arabic;
+    const currentCat = (word.category || 'عام').trim() || 'عام';
+    if (el.editCategoryInput) el.editCategoryInput.value = currentCat;
+
+    renderCategorySuggestions(currentCat);
+
+    if (el.editWordModal) {
+      el.editWordModal.style.display = 'flex';
+      setTimeout(() => {
+        if (el.editEnglishInput) el.editEnglishInput.focus();
+      }, 50);
+    }
+  }
+
+  function renderCategorySuggestions(selectedCat) {
+    if (!el.quickCategorySuggestions) return;
+    el.quickCategorySuggestions.innerHTML = '';
+
+    const defaultCats = ['عام', 'أفعال', 'سفر', 'طعام', 'عمل', 'تقنية', 'صفات', 'محادثة', 'تعليم'];
+    const existingCatMap = getUniqueCategories();
+    const allCatSet = new Set([...Array.from(existingCatMap.keys()), ...defaultCats]);
+
+    const fragment = document.createDocumentFragment();
+    allCatSet.forEach(cat => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'cat-suggest-chip' + (cat === selectedCat ? ' active' : '');
+      chip.textContent = `🏷️ ${cat}`;
+      chip.addEventListener('click', () => {
+        if (el.editCategoryInput) {
+          el.editCategoryInput.value = cat;
+          el.quickCategorySuggestions.querySelectorAll('.cat-suggest-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+        }
+      });
+      fragment.appendChild(chip);
+    });
+
+    el.quickCategorySuggestions.appendChild(fragment);
+  }
+
+  function closeEditWordModal() {
+    if (el.editWordModal) {
+      el.editWordModal.style.display = 'none';
+    }
+  }
+
+  function saveEditWord() {
+    const wordId = el.editWordId ? el.editWordId.value : null;
+    if (!wordId) return;
+
+    const word = state.vocabulary.find(w => w.id === wordId);
+    if (!word) return;
+
+    const newEnglish = (el.editEnglishInput?.value || '').trim();
+    const newArabic = (el.editArabicInput?.value || '').trim();
+    const newCategory = (el.editCategoryInput?.value || '').trim() || 'عام';
+
+    if (!newEnglish || !newArabic) {
+      alert('يرجى ملء الكلمة بالإنجليزية والترجمة بالعربية.');
+      return;
+    }
+
+    word.english = newEnglish;
+    word.arabic = newArabic;
+    word.category = newCategory;
+    word.tags = [newCategory];
+
+    // تحديث كلمة اليوم إذا كانت هذه الكلمة هي كلمة اليوم
+    if (state.wotd && state.wotd.wordId === word.id) {
+      renderWordOfTheDay();
+    }
+
+    saveState(true);
+    updateAllViews();
+    closeEditWordModal();
+  }
+
+  function renderCategoryFilterBar() {
+    if (!el.categoryFilterBar) return;
+    const catMap = getUniqueCategories();
+    const total = state.vocabulary.length;
+
+    el.categoryFilterBar.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+
+    // زر "الكل"
+    const allBtn = document.createElement('button');
+    allBtn.type = 'button';
+    allBtn.className = 'cat-pill-btn' + (state.categoryFilter === 'all' ? ' active' : '');
+    allBtn.innerHTML = `🌟 الكل <span class="cat-pill-count">${total}</span>`;
+    allBtn.addEventListener('click', () => {
+      state.categoryFilter = 'all';
+      renderCategoryFilterBar();
+      renderWordList(state.search);
+      saveState();
+    });
+    fragment.appendChild(allBtn);
+
+    // أزرار باقي التصنيفات
+    catMap.forEach((count, cat) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cat-pill-btn' + (state.categoryFilter === cat ? ' active' : '');
+      btn.innerHTML = `🏷️ ${cat} <span class="cat-pill-count">${count}</span>`;
+      btn.addEventListener('click', () => {
+        state.categoryFilter = state.categoryFilter === cat ? 'all' : cat;
+        renderCategoryFilterBar();
+        renderWordList(state.search);
+        saveState();
+      });
+      fragment.appendChild(btn);
+    });
+
+    el.categoryFilterBar.appendChild(fragment);
+  }
+
   function renderWordList(filter = '') {
     const query = normalizeString(filter);
+    renderCategoryFilterBar();
     el.wordList.innerHTML = '';
 
     const items = state.vocabulary
       .map((word, index) => ({ word, index }))
-      .filter(({ word }) =>
-        !query ||
-        normalizeString(word.english).includes(query) ||
-        normalizeString(word.arabic).includes(query)
-      );
+      .filter(({ word }) => {
+        // فلتر التصنيف المحدد
+        if (state.categoryFilter !== 'all') {
+          const wordCat = (word.category || 'عام').trim();
+          if (wordCat !== state.categoryFilter && !(word.tags || []).includes(state.categoryFilter)) {
+            return false;
+          }
+        }
+        // فلتر البحث
+        if (!query) return true;
+        const enMatch = normalizeString(word.english).includes(query);
+        const arMatch = normalizeString(word.arabic).includes(query);
+        const catMatch = normalizeString(word.category || '').includes(query);
+        const tagMatch = (word.tags || []).some(t => normalizeString(t).includes(query));
+        return enMatch || arMatch || catMatch || tagMatch;
+      });
 
     if (!items.length) {
       el.wordList.innerHTML = '<div class="empty-state">لا توجد كلمات مطابقة.</div>';
@@ -1258,7 +1647,20 @@
       const arabic = document.createElement('span');
       arabic.className = 'arabic-line';
       arabic.textContent = '→ ' + word.arabic;
-      pair.append(strong, arabic);
+
+      const tagSpan = document.createElement('span');
+      tagSpan.className = 'word-category-tag';
+      tagSpan.textContent = `🏷️ ${word.category || 'عام'}`;
+      tagSpan.title = 'اضغط لفلترة هذا التصنيف';
+      tagSpan.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.categoryFilter = word.category || 'عام';
+        renderCategoryFilterBar();
+        renderWordList(state.search);
+        saveState();
+      });
+
+      pair.append(strong, arabic, tagSpan);
 
       const actions = document.createElement('div');
       actions.className = 'word-actions';
@@ -1269,6 +1671,26 @@
       status.textContent = getStatusLabel(word.status);
       status.addEventListener('click', () => cycleStatus(index));
 
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'edit-btn';
+      editBtn.innerHTML = '✏️ تعديل';
+      editBtn.title = 'تعديل الكلمة، الترجمة، أو التصنيف';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditWordModal(word.id);
+      });
+
+      const shareBtn = document.createElement('button');
+      shareBtn.type = 'button';
+      shareBtn.className = 'share-btn';
+      shareBtn.innerHTML = '📤 مشاركة';
+      shareBtn.title = 'مشاركة هذه الكلمة كنص منسق';
+      shareBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openShareWordModal(word);
+      });
+
       const del = document.createElement('button');
       del.type = 'button';
       del.className = 'delete-btn';
@@ -1276,7 +1698,7 @@
       del.title = 'حذف';
       del.addEventListener('click', () => deleteWord(index));
 
-      actions.append(status, del);
+      actions.append(status, editBtn, shareBtn, del);
       item.append(check, pair, actions);
       fragment.appendChild(item);
     });
@@ -1300,7 +1722,13 @@
   function selectAll() {
     const query = normalizeString(state.search);
     state.vocabulary.forEach(word => {
-      if (!query || normalizeString(word.english).includes(query) || normalizeString(word.arabic).includes(query)) {
+      if (state.categoryFilter !== 'all') {
+        const wordCat = (word.category || 'عام').trim();
+        if (wordCat !== state.categoryFilter && !(word.tags || []).includes(state.categoryFilter)) {
+          return;
+        }
+      }
+      if (!query || normalizeString(word.english).includes(query) || normalizeString(word.arabic).includes(query) || normalizeString(word.category || '').includes(query)) {
         word.selected = true;
       }
     });
@@ -1368,7 +1796,7 @@
     return state.vocabulary.filter(w => set.has(w.id));
   }
 
-  // ==================== إشعارات التذكير اليومي (24 ساعة) ====================
+  // ==================== إشعارات التذكير اليومي والمجدولة ====================
 
   function isNotificationSupported() {
     return 'Notification' in window;
@@ -1394,9 +1822,10 @@
       if (permission === 'granted') {
         state.notifications.enabled = true;
         saveState(true);
+        const time = state.notifications.time || state.hafazniLessons.notificationTime || '20:00';
         sendNotification(
-          '🔔 تم تفعيل إشعارات حفظني بنجاح!',
-          'سنقوم بتنبيهك بدرسك اليومي إذا غبت عن التطبيق لمدة 24 ساعة لتثبيت الكلمات في ذاكرتك.'
+          '🔔 تم تفعيل إشعارات حفظني المجدولة!',
+          `سنقوم بتنبيهك يوميًا في موعدك المفضل (${time}) بمراجعة درسك وتثبيت الكلمات في ذاكرتك 🚀`
         );
         return true;
       }
@@ -1436,31 +1865,49 @@
 
   function checkDailyLessonNotification(force = false) {
     if (!isNotificationSupported()) return;
-    if (state.hafazniLessons.mode !== 'daily' && !force) return;
     if (Notification.permission !== 'granted') return;
+    if (!state.notifications.enabled && !force) return;
 
-    const now = Date.now();
-    const lastActive = state.notifications.lastActivityTime || now;
-    const lastReminder = state.notifications.lastReminderTime || 0;
-    const diffHours = (now - lastActive) / (1000 * 60 * 60);
-    const reminderDiffHours = (now - lastReminder) / (1000 * 60 * 60);
+    const now = new Date();
+    const today = getLocalDateStr(now);
+    const targetTime = state.notifications.time || state.hafazniLessons.notificationTime || '20:00';
+    const parts = targetTime.split(':');
+    const tHour = safeNumber(parts[0], 20);
+    const tMin = safeNumber(parts[1], 0);
 
-    // إذا مرّت 24 ساعة على آخر نشاط ولم يُرسل تذكير في آخر 20 ساعة
-    if (force || (diffHours >= 24 && reminderDiffHours >= 20)) {
-      const lessons = computeLessons();
-      const currentLesson = lessons.find(l => getLessonStatus(l) === 'available');
-      const lessonNum = currentLesson ? (currentLesson.index + 1) : 1;
-      sendNotification(
-        '🧠 حان وقت درسك اليومي في حفظني!',
-        `مرت 24 ساعة منذ آخر نشاط لك. درس اليوم (درس ${lessonNum}) جاهز الآن لتثبيت الكلمات وتنشيط الذاكرة 🚀`
-      );
-      state.notifications.lastReminderTime = now;
+    const curHour = now.getHours();
+    const curMin = now.getMinutes();
+    const isPastTargetTime = (curHour > tHour) || (curHour === tHour && curMin >= tMin);
+
+    if (force || (isPastTargetTime && state.notifications.lastScheduledDate !== today)) {
+      const nodes = computeLessons();
+      const currentNode = nodes.find(n => getLessonStatus(n) === 'available');
+      const title = currentNode
+        ? (currentNode.type === 'checkpoint' ? '🏆 موعد محطة التقييم الشامل في حفظني!' : `🧠 موعد درسك في حفظني (${currentNode.title})!`)
+        : '🧠 حان وقت مراجعة الكلمات في حفظني!';
+      const desc = currentNode
+        ? `حان موعد تذكيرك اليومي (${targetTime}). درسك جاهز الآن لتثبيت الكلمات وتنشيط الذاكرة 🚀`
+        : 'دقائق قليلة من المراجعة اليوم تثبت الكلمات في ذاكرتك للأبد ✨';
+
+      sendNotification(title, desc);
+      state.notifications.lastScheduledDate = today;
+      state.notifications.lastReminderTime = Date.now();
       saveState(true);
     }
   }
 
   function updateNotificationUI() {
     const status = getNotificationPermission();
+    const userTime = state.notifications.time || state.hafazniLessons.notificationTime || '20:00';
+
+    // تحديث قيم مدخلات الوقت في المعالج والإعدادات
+    if (el.wizardNotifTime) el.wizardNotifTime.value = userTime;
+    if (el.settingsNotifTime) el.settingsNotifTime.value = userTime;
+
+    // تحديث شرائح الوقت السريعة النشطة
+    document.querySelectorAll('.time-chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.time === userTime);
+    });
 
     // تحديث الشارة العلوية (Badge)
     if (el.notificationStateBadge) {
@@ -1484,9 +1931,9 @@
       if (status === 'granted') {
         el.notificationStatusBox.className = 'notif-status-box active';
         if (el.notifStatusIndicatorIcon) el.notifStatusIndicatorIcon.textContent = '🟢';
-        if (el.notifStatusIndicatorTitle) el.notifStatusIndicatorTitle.textContent = 'حالة الإشعارات: مفعلة وتعمل بنجاح';
+        if (el.notifStatusIndicatorTitle) el.notifStatusIndicatorTitle.textContent = `حالة الإشعارات: مفعلة (الموعد: ${userTime})`;
         if (el.notificationStatusText) {
-          el.notificationStatusText.textContent = 'جاهزة تمامًا! سنرسل لك إشعارًا تلقائيًا عند غيابك لمدة 24 ساعة في وضع "دروس يومية" لتثبيت كلمات درس اليوم.';
+          el.notificationStatusText.textContent = `جاهزة تمامًا! سنرسل لك إشعارًا يوميًا في موعدك المفضل (${userTime}) لتذكيرك بمتابعة مسار دروسك.`;
         }
       } else if (status === 'denied') {
         el.notificationStatusBox.className = 'notif-status-box blocked';
@@ -1507,41 +1954,36 @@
         if (el.notifStatusIndicatorIcon) el.notifStatusIndicatorIcon.textContent = '⚪';
         if (el.notifStatusIndicatorTitle) el.notifStatusIndicatorTitle.textContent = 'حالة الإشعارات: غير مفعلة بعد';
         if (el.notificationStatusText) {
-          el.notificationStatusText.textContent = 'اضغط على زر التفعيل بالأسفل للسماح للتطبيق بتذكيرك تلقائيًا بدرسك اليومي بعد 24 ساعة.';
+          el.notificationStatusText.textContent = `اضغط على زر التفعيل بالأسفل للسماح للتطبيق بتذكيرك يوميًا في موعدك المفضل (${userTime}).`;
         }
       }
     }
 
     if (el.toggleNotificationsBtn) {
       if (status === 'granted') {
-        el.toggleNotificationsBtn.textContent = '✅ إشعارات التذكير اليومي مفعلة (24 ساعة)';
+        el.toggleNotificationsBtn.textContent = `✅ إشعارات التذكير اليومي مفعلة (${userTime})`;
         el.toggleNotificationsBtn.classList.remove('primary');
       } else {
-        el.toggleNotificationsBtn.textContent = '🔔 تفعيل إشعارات التذكير (24 ساعة)';
+        el.toggleNotificationsBtn.textContent = `🔔 تفعيل إشعارات التذكير اليومي (${userTime})`;
         el.toggleNotificationsBtn.classList.add('primary');
       }
     }
 
     if (el.hafazniDailyNotifBar) {
-      if (state.hafazniLessons.mode === 'daily') {
-        el.hafazniDailyNotifBar.style.display = 'flex';
-        if (status === 'granted') {
-          el.hafazniDailyNotifBar.classList.add('granted');
-          if (el.hafazniDailyNotifMsg) el.hafazniDailyNotifMsg.textContent = '🔔 التذكير اليومي مفعل: سننبهك إذا لم تفتح التطبيق لمدة 24 ساعة';
-          if (el.hafazniEnableNotifBtn) {
-            el.hafazniEnableNotifBtn.textContent = 'مفعلة ✓';
-            el.hafazniEnableNotifBtn.disabled = true;
-          }
-        } else {
-          el.hafazniDailyNotifBar.classList.remove('granted');
-          if (el.hafazniDailyNotifMsg) el.hafazniDailyNotifMsg.textContent = 'فعّل التذكير لننبهك بدرس اليوم بعد 24 ساعة من عدم الفتح';
-          if (el.hafazniEnableNotifBtn) {
-            el.hafazniEnableNotifBtn.textContent = 'تفعيل الآن';
-            el.hafazniEnableNotifBtn.disabled = false;
-          }
+      if (status === 'granted') {
+        el.hafazniDailyNotifBar.classList.add('granted');
+        if (el.hafazniDailyNotifMsg) el.hafazniDailyNotifMsg.textContent = `🔔 التذكير اليومي مجدول في موعدك المفضل: ${userTime}`;
+        if (el.hafazniEnableNotifBtn) {
+          el.hafazniEnableNotifBtn.textContent = 'مفعلة ✓';
+          el.hafazniEnableNotifBtn.disabled = true;
         }
       } else {
-        el.hafazniDailyNotifBar.style.display = 'none';
+        el.hafazniDailyNotifBar.classList.remove('granted');
+        if (el.hafazniDailyNotifMsg) el.hafazniDailyNotifMsg.textContent = `فعّل التذكير لننبهك يوميًا في موعدك المفضل (${userTime})`;
+        if (el.hafazniEnableNotifBtn) {
+          el.hafazniEnableNotifBtn.textContent = 'تفعيل الآن';
+          el.hafazniEnableNotifBtn.disabled = false;
+        }
       }
     }
   }
@@ -1586,7 +2028,6 @@
     if (!state.studyTime) {
       state.studyTime = { totalSeconds: 0, todaySeconds: 0, lastDate: today };
     }
-    // تصفير ثواني اليوم إذا دخل يوم جديد
     if (state.studyTime.lastDate !== today) {
       state.studyTime.todaySeconds = 0;
       state.studyTime.lastDate = today;
@@ -1654,57 +2095,98 @@
     if (el.hafazniStudyTimeCount) {
       el.hafazniStudyTimeCount.textContent = formatStudyDuration(state.studyTime.totalSeconds);
     }
-
-    if (el.hafazniCurrentModeLabel) {
-      el.hafazniCurrentModeLabel.textContent = state.hafazniLessons.mode === 'daily' ? 'يومي' : 'يدوي';
-    }
-    if (el.hafazniCurrentModeIcon) {
-      el.hafazniCurrentModeIcon.textContent = state.hafazniLessons.mode === 'daily' ? '📅' : '🗂️';
-    }
   }
 
-  // ==================== خريطة دروس حفظني (SVG Winding Path) ====================
+  // ==================== بناء مسار الدروس المتسلسلة ومحطات التقييم ====================
 
   function computeLessons() {
-    const size = state.hafazniLessons.lessonSize || 10;
-    const lessons = [];
-    for (let i = 0; i * size < state.vocabulary.length; i++) {
-      const words = state.vocabulary.slice(i * size, i * size + size);
-      lessons.push({ index: i, words, ids: words.map(w => w.id) });
+    const size = Math.max(1, safeNumber(state.hafazniLessons.lessonSize, 10));
+    const cpFreq = Math.max(size, safeNumber(state.hafazniLessons.checkpointFrequency, 20));
+    const nodes = [];
+    const totalWords = state.vocabulary ? state.vocabulary.length : 0;
+    if (!totalWords) return [];
+
+    let wordCursor = 0;
+    let lessonNum = 1;
+    let checkpointNum = 1;
+    let wordsSinceLastCp = 0;
+    let accumulatedWordsForCp = [];
+    let globalIndex = 0;
+
+    while (wordCursor < totalWords) {
+      const chunk = state.vocabulary.slice(wordCursor, wordCursor + size);
+      wordCursor += size;
+      wordsSinceLastCp += chunk.length;
+      accumulatedWordsForCp.push(...chunk);
+
+      const lessonId = `lesson-${lessonNum}`;
+      nodes.push({
+        id: lessonId,
+        type: 'lesson',
+        index: globalIndex,
+        lessonNumber: lessonNum,
+        title: `الدرس ${lessonNum}`,
+        words: chunk,
+        ids: chunk.map(w => w.id)
+      });
+      globalIndex++;
+      lessonNum++;
+
+      // إدراج محطة تقييم ومراجعة شاملة (Checkpoint) كلما اجتاز المستخدم cpFreq كلمة أو عند نهاية مسار مجموعة الدروس
+      const shouldInsertCp = wordsSinceLastCp >= cpFreq || (wordCursor >= totalWords && accumulatedWordsForCp.length > chunk.length);
+      if (shouldInsertCp) {
+        const cpId = `checkpoint-${checkpointNum}`;
+        const uniqueCpWords = [];
+        const seen = new Set();
+        for (const w of accumulatedWordsForCp) {
+          if (!seen.has(w.id)) {
+            seen.add(w.id);
+            uniqueCpWords.push(w);
+          }
+        }
+
+        nodes.push({
+          id: cpId,
+          type: 'checkpoint',
+          index: globalIndex,
+          checkpointNumber: checkpointNum,
+          title: `تقييم شامل ${checkpointNum}`,
+          words: uniqueCpWords,
+          ids: uniqueCpWords.map(w => w.id)
+        });
+        globalIndex++;
+        checkpointNum++;
+        wordsSinceLastCp = 0;
+        accumulatedWordsForCp = [];
+      }
     }
-    return lessons;
+    return nodes;
   }
 
-  function unlockDailyLessonIfNeeded() {
-    const L = state.hafazniLessons;
-    if (L.mode !== 'daily') return;
-    const today = new Date().toDateString();
-    if (!L.lastUnlockDate) {
-      // أول مرة يُفعَّل فيها الوضع اليومي: درس واحد متاح من الآن
-      L.lastUnlockDate = today;
-      if (!L.dailyUnlockedCount) L.dailyUnlockedCount = 1;
-      saveState();
-      return;
+  function getLessonStatus(node) {
+    if (!node) return 'locked';
+    const completedList = state.hafazniLessons.completedLessonIds || [];
+    if (completedList.includes(node.id) || completedList.includes(String(node.index)) || completedList.includes(Number(node.index))) {
+      return 'completed';
     }
-    if (L.lastUnlockDate !== today) {
-      // يوم جديد: يُفتح درس إضافي تلقائيًا (الدروس المفتوحة سابقًا تفضل متاحة دايمًا)
-      const totalLessons = computeLessons().length;
-      L.dailyUnlockedCount = Math.min(totalLessons || 1, (L.dailyUnlockedCount || 1) + 1);
-      L.lastUnlockDate = today;
-      saveState();
+    // العقدة الأولى في المسار مفتوحة دائماً
+    if (node.index === 0) return 'available';
+
+    // العقدة n تُفتح فقط عند إتمام العقدة n-1
+    const allNodes = computeLessons();
+    const prevNode = allNodes[node.index - 1];
+    if (prevNode && (completedList.includes(prevNode.id) || completedList.includes(String(prevNode.index)) || completedList.includes(Number(prevNode.index)))) {
+      return 'available';
     }
+    return 'locked';
   }
 
-  function getLessonStatus(lesson) {
-    if (state.hafazniLessons.completedLessonIds.includes(lesson.index)) return 'completed';
-    if (state.hafazniLessons.mode === 'manual') return 'available';
-    return lesson.index < (state.hafazniLessons.dailyUnlockedCount || 1) ? 'available' : 'locked';
-  }
-
-  function computeLessonPoints(count, width = 360, stepY = 88) {
+  function computeLessonPoints(count, width = 360, stepY = 96) {
     const points = [];
-    // نمط التعرج: في المنتصف -> يمين -> في المنتصف -> يسار
-    const xPattern = [180, 275, 180, 85];
+    const midX = Math.round(width / 2); // 180
+    const rightX = Math.round(width * 0.76); // 274
+    const leftX = Math.round(width * 0.24); // 86
+    const xPattern = [midX, rightX, midX, leftX];
     for (let i = 0; i < count; i++) {
       const x = xPattern[i % 4];
       const y = 48 + i * stepY;
@@ -1715,13 +2197,14 @@
 
   function generateSvgWindingPath(points) {
     if (!points.length) return '';
+    if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
     let d = `M ${points[0].x} ${points[0].y}`;
     for (let i = 0; i < points.length - 1; i++) {
       const p1 = points[i];
       const p2 = points[i + 1];
       const dy = p2.y - p1.y;
-      const cy1 = p1.y + dy * 0.52;
-      const cy2 = p2.y - dy * 0.52;
+      const cy1 = p1.y + dy * 0.5;
+      const cy2 = p2.y - dy * 0.5;
       d += ` C ${p1.x} ${cy1}, ${p2.x} ${cy2}, ${p2.x} ${p2.y}`;
     }
     return d;
@@ -1729,24 +2212,27 @@
 
   function renderLessonMap() {
     if (!el.hafazniLessonPath) return;
-    unlockDailyLessonIfNeeded();
 
-    document.querySelectorAll('[data-hafazni-mode]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.hafazniMode === state.hafazniLessons.mode);
-    });
-
-    if (el.hafazniLessonsHint) {
-      el.hafazniLessonsHint.textContent = state.hafazniLessons.mode === 'manual'
-        ? 'اختر أي درس تحب تبدأ بيه، أو خُد كل الدروس ورا بعض براحتك في المسار.'
-        : 'هيتفتح درس جديد كل يوم تلقائيًا في المسار، والدروس المفتوحة تفضل متاحة دايمًا.';
+    // إذا لم ينشئ المستخدم المسار بعد، نعرض معالج الإنشاء والتخصيص أولاً
+    const pathCreated = Boolean(state.hafazniLessons.pathCreated);
+    if (!pathCreated) {
+      if (el.hafazniPathWizardBox) el.hafazniPathWizardBox.style.display = 'block';
+      if (el.hafazniPathActiveView) el.hafazniPathActiveView.style.display = 'none';
+      if (el.cancelWizardBtn) el.cancelWizardBtn.style.display = 'none';
+      syncWizardPills();
+      return;
     }
+
+    if (el.hafazniPathWizardBox) el.hafazniPathWizardBox.style.display = 'none';
+    if (el.hafazniPathActiveView) el.hafazniPathActiveView.style.display = 'block';
 
     updateNotificationUI();
     updateStreakAndStudyUI();
 
-    const lessons = computeLessons();
-    const completedCount = state.hafazniLessons.completedLessonIds.length;
-    const totalCount = lessons.length;
+    const nodes = computeLessons();
+    const completedList = state.hafazniLessons.completedLessonIds || [];
+    const completedCount = nodes.filter(n => completedList.includes(n.id) || completedList.includes(String(n.index)) || completedList.includes(Number(n.index))).length;
+    const totalCount = nodes.length;
     const percent = totalCount ? Math.round((completedCount / totalCount) * 100) : 0;
 
     if (el.hafazniMapProgressCount) {
@@ -1756,28 +2242,26 @@
       el.hafazniMapProgressBarFill.style.width = `${percent}%`;
     }
 
-    if (!lessons.length) {
+    if (!nodes.length) {
       if (el.hafazniMapSvg) el.hafazniMapSvg.innerHTML = '';
-      el.hafazniLessonPath.innerHTML = '<p class="lessons-hint">أضف كلمات من صفحة "الكلمات" الأول عشان يظهر مسار الدروس هنا.</p>';
+      el.hafazniLessonPath.innerHTML = '<p class="lessons-hint">أضف كلماتك من صفحة "الكلمات" ليتم توليد مسار الدروس المتسلسل تلقائيًا.</p>';
       el.hafazniLessonPath.style.height = 'auto';
       renderTodayWordsList(null);
       return;
     }
 
     const V_WIDTH = 360;
-    const STEP_Y = 88;
-    const points = computeLessonPoints(lessons.length, V_WIDTH, STEP_Y);
-    const totalHeight = Math.max(160, 48 + (lessons.length - 1) * STEP_Y + 54);
+    const STEP_Y = 96;
+    const points = computeLessonPoints(nodes.length, V_WIDTH, STEP_Y);
+    const totalHeight = Math.max(180, 48 + (nodes.length - 1) * STEP_Y + 56);
 
     el.hafazniLessonPath.style.height = `${totalHeight}px`;
 
-    // رسم مسار الـ SVG المتعرج الكامل
     const fullPathD = generateSvgWindingPath(points);
 
-    // حساب مسار الدروس النشطة والمكتملة لتلوين المسار
     let maxActiveIndex = -1;
-    for (let i = 0; i < lessons.length; i++) {
-      const st = getLessonStatus(lessons[i]);
+    for (let i = 0; i < nodes.length; i++) {
+      const st = getLessonStatus(nodes[i]);
       if (st === 'completed' || st === 'available') {
         maxActiveIndex = i;
       }
@@ -1787,6 +2271,7 @@
 
     if (el.hafazniMapSvg) {
       el.hafazniMapSvg.setAttribute('viewBox', `0 0 ${V_WIDTH} ${totalHeight}`);
+      el.hafazniMapSvg.setAttribute('preserveAspectRatio', 'none');
       el.hafazniMapSvg.innerHTML = `
         <defs>
           <linearGradient id="roadActiveGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1803,59 +2288,80 @@
       `;
     }
 
-    // أول درس متاح للتعلم
-    const firstAvailableLesson = lessons.find(l => getLessonStatus(l) === 'available') || null;
-    const targetIndex = firstAvailableLesson ? firstAvailableLesson.index : (lessons[0] ? lessons[0].index : 0);
+    const firstAvailableNode = nodes.find(n => getLessonStatus(n) === 'available') || null;
+    const targetIndex = firstAvailableNode ? firstAvailableNode.index : (nodes[0] ? nodes[0].index : 0);
 
-    // رسم عقد الدروس فوق المسار المتعرج
-    el.hafazniLessonPath.innerHTML = lessons.map((lesson, idx) => {
-      const status = getLessonStatus(lesson);
-      const isTarget = lesson.index === targetIndex && status === 'available';
-      const label = status === 'locked' ? '🔒' : (status === 'completed' ? '✓' : String(lesson.index + 1));
+    el.hafazniLessonPath.innerHTML = nodes.map((node, idx) => {
+      const status = getLessonStatus(node);
+      const isTarget = node.index === targetIndex && status === 'available';
+      const isCheckpoint = node.type === 'checkpoint';
+
+      let label = '';
+      if (status === 'completed') {
+        label = '✓';
+      } else if (status === 'locked') {
+        label = '🔒';
+      } else {
+        label = isCheckpoint ? '🏆' : String(node.lessonNumber);
+      }
+
       const pt = points[idx];
       const leftPercent = (pt.x / V_WIDTH) * 100;
       const topPx = pt.y;
 
       const tagHtml = isTarget
-        ? `<span class="lesson-floating-tag">${state.hafazniLessons.mode === 'daily' ? 'درس اليوم 🎯' : 'ابدأ هنا 🚀'}</span>`
+        ? `<span class="lesson-floating-tag">${isCheckpoint ? 'تقييم شامل 🏆' : 'الدرس الحالي 🎯'}</span>`
         : '';
 
+      const nodeClasses = [
+        'lesson-node',
+        isCheckpoint ? 'checkpoint' : '',
+        status,
+        isTarget ? 'current-target' : ''
+      ].filter(Boolean).join(' ');
+
       return `
-        <div class="lesson-node ${status} ${isTarget ? 'current-target' : ''}"
-             data-lesson="${lesson.index}"
+        <div class="${nodeClasses}"
+             data-node-id="${node.id}"
+             data-node-index="${node.index}"
              style="left: ${leftPercent}%; top: ${topPx}px;"
-             title="درس ${lesson.index + 1} (${lesson.words.length} كلمة) - ${status === 'completed' ? 'مكتمل' : (status === 'locked' ? 'مغلق' : 'متاح')}">
+             title="${node.title} (${node.words.length} كلمة) - ${status === 'completed' ? 'مكتمل' : (status === 'locked' ? 'مغلق (أتمم السابق لفتحه)' : 'متاح للبدء')}">
           ${tagHtml}
-          <span>${label}</span>
+          <span class="node-num-icon">${label}</span>
+          <span class="lesson-node-label">${node.title}</span>
         </div>
       `;
     }).join('');
 
-    // تحديث بطاقة كلمات الدرس الحالي
-    renderTodayWordsList(firstAvailableLesson || lessons[0] || null);
+    renderTodayWordsList(firstAvailableNode || nodes[0] || null);
   }
 
-  function renderTodayWordsList(lesson) {
+  function renderTodayWordsList(node) {
     if (!el.hafazniTodayWordsCard || !el.hafazniTodayWordsList) return;
-    if (!lesson || !lesson.words.length) {
+    if (!node || !node.words || !node.words.length) {
       el.hafazniTodayWordsCard.style.display = 'none';
       el.hafazniTodayWordsList.innerHTML = '';
       return;
     }
     el.hafazniTodayWordsCard.style.display = 'block';
-    const status = getLessonStatus(lesson);
+    const status = getLessonStatus(node);
     const statusLabel = status === 'completed' ? ' (مكتمل ✓)' : '';
-    el.hafazniTodayWordsTitle.textContent = `📋 كلمات الدرس ${lesson.index + 1}${statusLabel} (${lesson.words.length})`;
+    const isCheckpoint = node.type === 'checkpoint';
+
+    el.hafazniTodayWordsTitle.textContent = isCheckpoint
+      ? `🏆 كلمات التقييم الشامل (${node.words.length} كلمة)${statusLabel}`
+      : `📋 كلمات الدرس ${node.lessonNumber}${statusLabel} (${node.words.length})`;
 
     if (el.startCurrentLessonDirectBtn) {
       el.startCurrentLessonDirectBtn.style.display = status === 'locked' ? 'none' : 'inline-block';
-      el.startCurrentLessonDirectBtn.textContent = `🚀 ابدأ الدرس ${lesson.index + 1}`;
-      el.startCurrentLessonDirectBtn.dataset.lessonIndex = String(lesson.index);
+      el.startCurrentLessonDirectBtn.textContent = isCheckpoint ? '🏆 ابدأ التقييم الشامل' : `🚀 ابدأ الدرس ${node.lessonNumber}`;
+      el.startCurrentLessonDirectBtn.dataset.nodeId = node.id;
+      el.startCurrentLessonDirectBtn.dataset.nodeIndex = String(node.index);
     }
 
     el.hafazniTodayWordsList.innerHTML = '';
     const fragment = document.createDocumentFragment();
-    lesson.words.forEach(w => {
+    node.words.forEach(w => {
       const li = document.createElement('li');
       const en = document.createElement('span');
       en.className = 'tw-en';
@@ -1870,24 +2376,46 @@
     el.hafazniTodayWordsList.appendChild(fragment);
   }
 
-  function startLesson(index) {
-    const lessons = computeLessons();
-    const lesson = lessons[index];
-    if (!lesson || !lesson.ids.length) return;
-    if (getLessonStatus(lesson) === 'locked') return;
+  function startLesson(nodeIndexOrId) {
+    const nodes = computeLessons();
+    const node = typeof nodeIndexOrId === 'number'
+      ? nodes[nodeIndexOrId]
+      : nodes.find(n => n.id === nodeIndexOrId || String(n.index) === String(nodeIndexOrId));
+
+    if (!node || !node.ids.length) return;
+    if (getLessonStatus(node) === 'locked') {
+      alert('🔒 هذا الدرس مقفل. أتمم الدرس السابق أولاً لتفتحه بالتسلسل.');
+      return;
+    }
     markUserActivity();
-    state.hafazni.activeLessonId = index;
-    initHafazniSession(lesson.ids);
+    state.hafazni.activeLessonId = node.id;
+    state.hafazni.activeLessonIndex = node.index;
+    initHafazniSession(node.ids);
   }
 
-  function setHafazniMode(mode) {
-    state.hafazniLessons.mode = mode === 'daily' ? 'daily' : 'manual';
-    saveState();
-    renderLessonMap();
-    if (state.hafazniLessons.mode === 'daily' && isNotificationSupported() && Notification.permission === 'default') {
-      // إعطاء المستخدم فرصة لتفعيل الإشعارات تلقائيًا عند تفعيل الوضع اليومي
-      updateNotificationUI();
+  function syncWizardPills() {
+    const currentSize = String(state.hafazniLessons.lessonSize || 10);
+    const currentCp = String(state.hafazniLessons.checkpointFrequency || 20);
+    const currentTime = state.hafazniLessons.notificationTime || '20:00';
+
+    if (el.wizardLessonSizeOptions) {
+      el.wizardLessonSizeOptions.querySelectorAll('.wizard-pill-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === currentSize);
+      });
     }
+
+    if (el.wizardCheckpointOptions) {
+      el.wizardCheckpointOptions.querySelectorAll('.wizard-pill-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === currentCp);
+      });
+    }
+
+    if (el.wizardNotifTime) el.wizardNotifTime.value = currentTime;
+    if (el.settingsNotifTime) el.settingsNotifTime.value = currentTime;
+
+    document.querySelectorAll('.time-chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.time === currentTime);
+    });
   }
 
   // ==================== HAFazni Advanced Session ====================
@@ -1899,7 +2427,6 @@
       return;
     }
 
-    // إعادة ضبط حالة الجلسة
     state.hafazni.active = true;
     if (hafazniSessionTimer) clearInterval(hafazniSessionTimer);
     hafazniSessionSeconds = 0;
@@ -1919,8 +2446,8 @@
       wrong: 0,
       consecutiveCorrect: 0,
       consecutiveWrong: 0,
-      difficulty: 0,          // 0-10, كلما زادت صعوبة كلما زادت الأولوية
-      mastery: 0,             // 0-100
+      difficulty: 0,
+      mastery: 0,
       lastShown: now(),
       nextReview: now(),
       lapses: 0,
@@ -1932,14 +2459,12 @@
     state.hafazni.processing = false;
     state.hafazni.summary = { correct: 0, wrong: 0, attempts: 0, mastered: [], needsReview: [] };
 
-    // إخفاء خريطة الدروس والإعدادات وإظهار الجلسة بملء الشاشة (دخول مباشر للسؤال)
     if (el.hafazniTypeToggle) el.hafazniTypeToggle.style.display = 'none';
     if (el.hafazniLessonsCard) el.hafazniLessonsCard.style.display = 'none';
     if (el.hafazniSetupCard) el.hafazniSetupCard.style.display = 'none';
     if (el.hafazniSession) el.hafazniSession.style.display = 'block';
     if (el.hafazniSummary) el.hafazniSummary.style.display = 'none';
 
-    // تحديث واجهة المستخدم
     updateHafazniOverview();
     renderHafazniQuestion();
   }
@@ -2273,21 +2798,37 @@
     // تسجيل نشاط الحفظ والستريك اليومي بنجاح
     recordHafazniStudyActivity(true);
 
-    // لو الجلسة دي كانت درسًا من خريطة الدروس، نعلّمه مكتمل ونجهّز اقتراح "الدرس التالي"
+    // لو الجلسة دي كانت درسًا أو محطة من خريطة الدروس، نعلّمها مكتملة ونجهّز اقتراح "الدرس التالي"
     const completedLessonId = state.hafazni.activeLessonId;
+    const completedLessonIndex = state.hafazni.activeLessonIndex;
     state.hafazni.activeLessonId = null;
+    state.hafazni.activeLessonIndex = null;
+
     if (completedLessonId !== null && completedLessonId !== undefined) {
       if (!state.hafazniLessons.completedLessonIds.includes(completedLessonId)) {
         state.hafazniLessons.completedLessonIds.push(completedLessonId);
       }
-      const lessons = computeLessons();
-      const nextLesson = lessons[completedLessonId + 1];
-      const nextAvailable = nextLesson && getLessonStatus(nextLesson) !== 'locked';
-      el.completedLessonNumber.textContent = completedLessonId + 1;
+      if (completedLessonIndex !== null && completedLessonIndex !== undefined && !state.hafazniLessons.completedLessonIds.includes(String(completedLessonIndex))) {
+        state.hafazniLessons.completedLessonIds.push(String(completedLessonIndex));
+      }
+
+      const nodes = computeLessons();
+      const nextIndex = (completedLessonIndex !== null && completedLessonIndex !== undefined)
+        ? completedLessonIndex + 1
+        : nodes.findIndex(n => n.id === completedLessonId) + 1;
+
+      const nextNode = nodes[nextIndex];
+      const nextAvailable = nextNode && getLessonStatus(nextNode) !== 'locked';
+
+      const currentCompletedNode = nodes.find(n => n.id === completedLessonId || n.index === completedLessonIndex);
+      el.completedLessonNumber.textContent = currentCompletedNode ? currentCompletedNode.title : 'الدرس';
       el.lessonCompleteNote.style.display = 'block';
+
       if (nextAvailable) {
         el.nextLessonBtn.style.display = 'block';
-        el.nextLessonBtn.dataset.nextIndex = completedLessonId + 1;
+        el.nextLessonBtn.textContent = nextNode.type === 'checkpoint' ? '🏆 الانتقال للتقييم الشامل التالي' : `الانتقال إلى ${nextNode.title} 🚀`;
+        el.nextLessonBtn.dataset.nextNodeId = nextNode.id;
+        el.nextLessonBtn.dataset.nextNodeIndex = String(nextNode.index);
       } else {
         el.nextLessonBtn.style.display = 'none';
       }
@@ -2702,14 +3243,178 @@
     });
     el.hafazniLessonPath.addEventListener('click', event => {
       const node = event.target.closest('.lesson-node');
-      if (!node || node.classList.contains('locked')) return;
-      startLesson(Number(node.dataset.lesson));
+      if (!node) return;
+      const target = node.dataset.nodeId || Number(node.dataset.nodeIndex);
+      const nodes = computeLessons();
+      const nodeData = nodes.find(n => n.id === target || n.index === Number(target));
+      if (!nodeData) return;
+
+      const status = getLessonStatus(nodeData);
+      if (status === 'locked') {
+        alert('🔒 هذا الدرس مقفل. أتمم الدرس السابق لفتحه.');
+        return;
+      }
+
+      renderTodayWordsList(nodeData);
+      startLesson(nodeData.id);
     });
+
     el.nextLessonBtn.addEventListener('click', () => {
-      const idx = Number(el.nextLessonBtn.dataset.nextIndex);
+      const target = el.nextLessonBtn.dataset.nextNodeId || Number(el.nextLessonBtn.dataset.nextNodeIndex);
       el.hafazniSummary.style.display = 'none';
-      startLesson(idx);
+      startLesson(target);
     });
+
+    // معالج إنشاء المسار وخيارات التخصيص
+    if (el.wizardLessonSizeOptions) {
+      el.wizardLessonSizeOptions.addEventListener('click', event => {
+        const btn = event.target.closest('.wizard-pill-btn');
+        if (!btn) return;
+        el.wizardLessonSizeOptions.querySelectorAll('.wizard-pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    }
+
+    if (el.wizardCheckpointOptions) {
+      el.wizardCheckpointOptions.addEventListener('click', event => {
+        const btn = event.target.closest('.wizard-pill-btn');
+        if (!btn) return;
+        el.wizardCheckpointOptions.querySelectorAll('.wizard-pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    }
+
+    // شرائح التوقيت السريعة
+    document.querySelectorAll('.time-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const selectedTime = chip.dataset.time;
+        if (!selectedTime) return;
+        state.notifications.time = selectedTime;
+        state.hafazniLessons.notificationTime = selectedTime;
+        if (el.wizardNotifTime) el.wizardNotifTime.value = selectedTime;
+        if (el.settingsNotifTime) el.settingsNotifTime.value = selectedTime;
+        document.querySelectorAll('.time-chip').forEach(c => c.classList.toggle('active', c.dataset.time === selectedTime));
+        saveState();
+        updateNotificationUI();
+      });
+    });
+
+    const handleTimeInputChange = (e) => {
+      const val = e.target.value;
+      if (!val) return;
+      state.notifications.time = val;
+      state.hafazniLessons.notificationTime = val;
+      if (el.wizardNotifTime) el.wizardNotifTime.value = val;
+      if (el.settingsNotifTime) el.settingsNotifTime.value = val;
+      document.querySelectorAll('.time-chip').forEach(c => c.classList.toggle('active', c.dataset.time === val));
+      saveState();
+      updateNotificationUI();
+    };
+
+    if (el.wizardNotifTime) el.wizardNotifTime.addEventListener('change', handleTimeInputChange);
+    if (el.settingsNotifTime) el.settingsNotifTime.addEventListener('change', handleTimeInputChange);
+
+    if (el.generatePathBtn) {
+      el.generatePathBtn.addEventListener('click', () => {
+        const sizeBtn = el.wizardLessonSizeOptions?.querySelector('.wizard-pill-btn.active');
+        const cpBtn = el.wizardCheckpointOptions?.querySelector('.wizard-pill-btn.active');
+        const timeVal = el.wizardNotifTime?.value || '20:00';
+
+        const size = sizeBtn ? safeNumber(sizeBtn.dataset.val, 10) : 10;
+        const cpFreq = cpBtn ? safeNumber(cpBtn.dataset.val, 20) : 20;
+
+        state.hafazniLessons.lessonSize = size;
+        state.hafazniLessons.checkpointFrequency = cpFreq;
+        state.hafazniLessons.notificationTime = timeVal;
+        state.notifications.time = timeVal;
+        state.hafazniLessons.pathCreated = true;
+
+        saveState(true);
+        updateAllViews();
+        renderLessonMap();
+
+        if (isNotificationSupported() && Notification.permission === 'default') {
+          requestNotificationPermission();
+        }
+      });
+    }
+
+    if (el.hafazniReconfigureBtn) {
+      el.hafazniReconfigureBtn.addEventListener('click', () => {
+        if (el.hafazniPathWizardBox) el.hafazniPathWizardBox.style.display = 'block';
+        if (el.hafazniPathActiveView) el.hafazniPathActiveView.style.display = 'none';
+        if (el.cancelWizardBtn) el.cancelWizardBtn.style.display = 'inline-block';
+        syncWizardPills();
+      });
+    }
+
+    if (el.cancelWizardBtn) {
+      el.cancelWizardBtn.addEventListener('click', () => {
+        if (state.hafazniLessons.pathCreated) {
+          if (el.hafazniPathWizardBox) el.hafazniPathWizardBox.style.display = 'none';
+          if (el.hafazniPathActiveView) el.hafazniPathActiveView.style.display = 'block';
+        }
+      });
+    }
+
+    // كلمة اليوم (Word of the Day)
+    if (el.wotdRefreshBtn) {
+      el.wotdRefreshBtn.addEventListener('click', () => {
+        renderWordOfTheDay(true);
+      });
+    }
+
+    if (el.wotdPronounceBtn) {
+      el.wotdPronounceBtn.addEventListener('click', () => {
+        const w = getWordOfTheDay();
+        if (w) speak(w.english);
+      });
+    }
+
+    if (el.wotdStudyBtn) {
+      el.wotdStudyBtn.addEventListener('click', () => {
+        const w = getWordOfTheDay();
+        if (w) {
+          const idx = state.vocabulary.findIndex(item => item.id === w.id);
+          if (idx >= 0) {
+            state.studyFilter = 'all';
+            state.currentIndex = idx;
+            updateStudyView();
+          }
+        }
+        navigateTo('studyPage');
+      });
+    }
+
+    if (el.wotdTestBtn) {
+      el.wotdTestBtn.addEventListener('click', () => {
+        const w = getWordOfTheDay();
+        if (w) {
+          const idx = state.vocabulary.findIndex(item => item.id === w.id);
+          if (idx >= 0) {
+            state.studyFilter = 'all';
+            state.currentIndex = idx;
+            updateTestView();
+          }
+        }
+        navigateTo('testPage');
+      });
+    }
+
+    if (el.wotdLearnedBtn) {
+      el.wotdLearnedBtn.addEventListener('click', () => {
+        const w = getWordOfTheDay();
+        if (!w) return;
+        w.status = w.status === 'learned' ? 'new' : 'learned';
+        if (w.status === 'learned') {
+          w.correctCount = (w.correctCount || 0) + 1;
+        }
+        saveState(true);
+        updateStats();
+        renderWordOfTheDay();
+        renderWordList(state.search);
+      });
+    }
 
     el.reviewMistakesBtn.addEventListener('click', reviewHafazniMistakes);
     el.hafazniSpeakBtn.addEventListener('click', () => {
@@ -2810,7 +3515,7 @@
     });
 
     el.startCurrentLessonDirectBtn?.addEventListener('click', () => {
-      const idx = Number(el.startCurrentLessonDirectBtn.dataset.lessonIndex || 0);
+      const idx = Number(el.startCurrentLessonDirectBtn.dataset.nodeIndex ?? el.startCurrentLessonDirectBtn.dataset.lessonIndex ?? 0);
       startLesson(idx);
     });
 
@@ -2819,9 +3524,31 @@
     el.closeUpdateModal.addEventListener('click', () => closeModal(el.updateModal));
     el.viewFeaturesBtn.addEventListener('click', () => openModal(el.updateModal));
 
+    // أحداث نافذة تعديل الكلمة والتصنيف
+    el.saveEditWordBtn?.addEventListener('click', saveEditWord);
+    el.cancelEditWordBtn?.addEventListener('click', closeEditWordModal);
+    el.closeEditWordModal?.addEventListener('click', closeEditWordModal);
+    el.editWordForm?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      saveEditWord();
+    });
+
+    // أحداث نافذة مشاركة الكلمة كنص منسق
+    el.wotdShareBtn?.addEventListener('click', () => {
+      openShareWordModal(getWordOfTheDay());
+    });
+    el.closeShareWordModal?.addEventListener('click', closeShareWordModal);
+    el.shareCopyBtn?.addEventListener('click', copyFormattedWord);
+    el.shareWhatsappBtn?.addEventListener('click', shareToWhatsapp);
+    el.shareTelegramBtn?.addEventListener('click', shareToTelegram);
+    el.shareTwitterBtn?.addEventListener('click', shareToTwitter);
+    el.shareNativeBtn?.addEventListener('click', shareNative);
+
     window.addEventListener('click', event => {
       if (event.target === el.helpModal) closeModal(el.helpModal);
       if (event.target === el.updateModal) closeModal(el.updateModal);
+      if (event.target === el.editWordModal) closeEditWordModal();
+      if (event.target === el.shareWordModal) closeShareWordModal();
     });
 
     document.addEventListener('keydown', event => {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'flashcards-v1.5.0';
+const CACHE_NAME = 'flashcards-v1.5.1';
 // ملفات أساسية: التطبيق لا يعمل offline بدونها إطلاقًا
 const CRITICAL_ASSETS = [
   './',
