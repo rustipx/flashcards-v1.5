@@ -1,10 +1,33 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '1.5.1';
+  const APP_VERSION = '1.5.2';
   const STORAGE_KEY = 'flashcards_v1_4';
   const OLD_STORAGE_KEYS = ['flashcards_v2'];
   const UPDATE_KEY = 'flashcards_last_seen_version';
+
+  const STARTER_VOCABULARY = [
+    { english: 'Inspiration', arabic: 'إلهام / تشجيع', category: 'عام', status: 'new' },
+    { english: 'Achieve', arabic: 'يحقق / ينجز', category: 'أفعال', status: 'new' },
+    { english: 'Brilliant', arabic: 'رائع / بارع', category: 'صفات', status: 'new' },
+    { english: 'Challenge', arabic: 'تحدي / يتحدى', category: 'عام', status: 'new' },
+    { english: 'Determine', arabic: 'يحدد / يصمم', category: 'أفعال', status: 'new' },
+    { english: 'Effort', arabic: 'مجهود / سعي', category: 'عام', status: 'new' },
+    { english: 'Fluent', arabic: 'فصيح / طليق', category: 'صفات', status: 'new' },
+    { english: 'Grateful', arabic: 'ممتن / شاكر', category: 'صفات', status: 'new' },
+    { english: 'Habit', arabic: 'عادة يومية', category: 'عام', status: 'new' },
+    { english: 'Journey', arabic: 'رحلة / مسار', category: 'سفر', status: 'new' },
+    { english: 'Knowledge', arabic: 'معرفة / علم', category: 'تعليم', status: 'new' },
+    { english: 'Opportunity', arabic: 'فرصة ثمينة', category: 'عمل', status: 'new' },
+    { english: 'Patient', arabic: 'صبور', category: 'صفات', status: 'new' },
+    { english: 'Quickly', arabic: 'بسرعة', category: 'ظروف', status: 'new' },
+    { english: 'Reliable', arabic: 'موثوق / يعتمد عليه', category: 'صفات', status: 'new' },
+    { english: 'Success', arabic: 'نجاح / فوز', category: 'عمل', status: 'new' },
+    { english: 'Target', arabic: 'هدف / غاية', category: 'عمل', status: 'new' },
+    { english: 'Understand', arabic: 'يفهم / يستوعب', category: 'أفعال', status: 'new' },
+    { english: 'Valuable', arabic: 'قيّم / ثمين', category: 'صفات', status: 'new' },
+    { english: 'Wisdom', arabic: 'حكمة', category: 'عام', status: 'new' }
+  ];
 
   const state = {
     vocabulary: [],
@@ -24,16 +47,17 @@
       sessionWords: [],      // array of session word objects with temp data
       currentIndex: 0,
       totalWords: 0,
-      activeLessonId: null,  // رقم الدرس أو التقييم الحالي لو الجلسة اتفتحت من خريطة المسار
+      activeLessonId: null,  // معرف الدرس أو التقييم الحالي لو الجلسة اتفتحت من خريطة المسار
       mistakes: [],
       processing: false,
       summary: { correct: 0, wrong: 0, attempts: 0, mastered: [], needsReview: [] }
     },
     hafazniLessons: {
       pathCreated: false,        // true لو المستخدم أنشأ المسار بعد تحديد الخيارات
+      pathId: 'p_default',       // معرّف المسار النشط لضمان استقلالية الدروس تمامًا
       lessonSize: 10,            // عدد الكلمات في كل درس (5, 10, 15, 20)
       checkpointFrequency: 20,   // تكرار اختبار التقييم الشامل (15, 20, 30, 40)
-      completedLessonIds: [],    // أرقام العقد أو الدروس المكتملة بالتسلسل
+      completedLessonIds: [],    // معرّفات الدروس المكتملة الخاصة بالمسار الحالي
       completedCheckpoints: [],  // محطات التقييم المكتملة
       notificationTime: '20:00'  // موعد التذكير المفضل
     },
@@ -111,13 +135,20 @@
       'hafazniReconfigureBtn','hafazniPathWizardBox','hafazniPathActiveView',
       'wizardLessonSizeOptions','wizardCheckpointOptions','wizardNotifTime',
       'generatePathBtn','cancelWizardBtn','settingsNotifTime','settingsQuickTimeChips',
-      // عناصر نافذة تعديل الكلمة والتصنيف:
+      // عناصر نافذة تعديل الكلمة والتصنيف والحالة:
       'editWordModal','closeEditWordModal','editWordForm','editWordId','editEnglishInput',
       'editArabicInput','editCategoryInput','quickCategorySuggestions','saveEditWordBtn','cancelEditWordBtn',
+      'editStatusPills','editStatusInput',
       // عناصر نافذة مشاركة الكلمة:
       'wotdShareBtn','shareWordModal','closeShareWordModal','shareWordModalTitle','sharePreviewEnglish',
       'sharePreviewArabic','sharePreviewCategory','shareCopyBtn','shareWhatsappBtn',
-      'shareTelegramBtn','shareTwitterBtn','shareNativeBtn','shareCopyToast'
+      'shareTelegramBtn','shareTwitterBtn','shareNativeBtn','shareCopyToast',
+      // عناصر تصدير الـ PDF واحتفال الكنفيتي (v1.5.2):
+      'exportWordsModal','closeExportWordsModal','exportPdfAllBtn','exportPdfDifficultBtn','exportTxtBtn',
+      'confettiCanvas',
+      // عناصر فريق التطوير (Team rustipx):
+      'homeAboutUsBtn','settingsAboutUsBtn','aboutUsModal','closeAboutUsModal',
+      'copyRepoUrlBtn','repoUrlText','repoCopyToast'
     ].forEach(id => el[id] = $(id));
   }
 
@@ -258,14 +289,29 @@
         ? data.testSubMode : 'writing';
       state.selectedIds = Array.isArray(data.selectedIds) ? data.selectedIds.map(String) : [];
       const savedLessons = data.hafazniLessons || {};
+      const savedPathId = typeof savedLessons.pathId === 'string' && savedLessons.pathId ? savedLessons.pathId : 'p_default';
+      const rawCompleted = Array.isArray(savedLessons.completedLessonIds) ? savedLessons.completedLessonIds : [];
+      const completedLessonIds = rawCompleted.map(item => {
+        const s = String(item);
+        if (s.includes('_lesson_') || s.includes('_checkpoint_') || s.startsWith('path_') || s.startsWith('p_')) {
+          return s;
+        }
+        if (s.startsWith('checkpoint-') || s.startsWith('cp-')) {
+          const num = s.replace(/[^0-9]/g, '') || '1';
+          return `${savedPathId}_checkpoint_${num}`;
+        }
+        const num = s.replace(/[^0-9]/g, '') || '1';
+        return `${savedPathId}_lesson_${num}`;
+      });
+
       state.hafazniLessons = {
         pathCreated: Boolean(savedLessons.pathCreated),
+        pathId: savedPathId,
         lessonSize: Number.isFinite(savedLessons.lessonSize) && savedLessons.lessonSize > 0
           ? savedLessons.lessonSize : 10,
         checkpointFrequency: Number.isFinite(savedLessons.checkpointFrequency) && savedLessons.checkpointFrequency > 0
           ? savedLessons.checkpointFrequency : 20,
-        completedLessonIds: Array.isArray(savedLessons.completedLessonIds)
-          ? savedLessons.completedLessonIds.map(String) : [],
+        completedLessonIds: completedLessonIds,
         completedCheckpoints: Array.isArray(savedLessons.completedCheckpoints)
           ? savedLessons.completedCheckpoints.map(String) : [],
         notificationTime: typeof savedLessons.notificationTime === 'string' && savedLessons.notificationTime
@@ -354,6 +400,10 @@
       btn.classList.toggle('active', btn.dataset.page === pageId);
     });
 
+    if (pageId === 'homePage') {
+      renderWordOfTheDay();
+      updateStats();
+    }
     if (pageId === 'wordsPage') renderWordList(state.search);
     if (pageId === 'hafazniPage') updateHafazniOverview();
     if (pageId === 'testPage') {
@@ -398,10 +448,13 @@
   }
 
   function getWordOfTheDay(forceNew = false) {
-    if (!state.vocabulary || !state.vocabulary.length) return null;
+    if (!state.vocabulary || !state.vocabulary.length) {
+      state.vocabulary = normalizeVocabulary(STARTER_VOCABULARY);
+      saveState(true);
+    }
     const today = getLocalDateStr();
 
-    if (!forceNew && state.wotd.wordId && state.wotd.dateStr === today) {
+    if (!forceNew && state.wotd && state.wotd.wordId && state.wotd.dateStr === today) {
       const existing = state.vocabulary.find(w => w.id === state.wotd.wordId);
       if (existing) return existing;
     }
@@ -416,12 +469,14 @@
       const idx = Math.abs(hash) % state.vocabulary.length;
       selected = state.vocabulary[idx];
     } else {
-      const candidates = state.vocabulary.filter(w => w.id !== state.wotd.wordId);
+      const currentId = state.wotd ? state.wotd.wordId : null;
+      const candidates = state.vocabulary.filter(w => w.id !== currentId);
       const pool = candidates.length ? candidates : state.vocabulary;
       selected = pool[Math.floor(Math.random() * pool.length)];
     }
 
     if (selected) {
+      if (!state.wotd) state.wotd = {};
       state.wotd.wordId = selected.id;
       state.wotd.dateStr = today;
       saveState();
@@ -457,7 +512,7 @@
 
     if (el.wotdStatus) {
       el.wotdStatus.textContent = getStatusLabel(word.status);
-      el.wotdStatus.className = `wotd-status-pill ${word.status}`;
+      el.wotdStatus.className = `wotd-status-pill ${word.status || 'new'}`;
     }
 
     if (el.wotdLearnedBtn) {
@@ -1433,16 +1488,36 @@
     el.newEnglish.focus();
   }
 
-  function cycleStatus(wordOrId) {
-    const word = typeof wordOrId === 'object' ? wordOrId : state.vocabulary.find(w => w.id === wordOrId || w === wordOrId);
+  function setWordStatus(wordOrId, newStatus) {
+    const word = typeof wordOrId === 'object' && wordOrId !== null
+      ? wordOrId
+      : (typeof wordOrId === 'number' ? state.vocabulary[wordOrId] : state.vocabulary.find(w => w.id === String(wordOrId)));
     if (!word) return;
-    word.status = word.status === 'new' ? 'learned' : word.status === 'learned' ? 'difficult' : 'new';
-    if (word.status === 'new') {
+    if (!['new', 'difficult', 'learned'].includes(newStatus)) return;
+    word.status = newStatus;
+    if (newStatus === 'new') {
       word.interval = 0;
       word.due = now();
+    } else if (newStatus === 'learned') {
+      word.interval = Math.max(word.interval || 1, 24);
+      word.due = now() + word.interval * 3600000;
+      word.correctCount = Math.max(word.correctCount || 0, 3);
+    } else if (newStatus === 'difficult') {
+      word.interval = 0;
+      word.due = now();
+      word.wrongCount = (word.wrongCount || 0) + 1;
     }
     saveState(true);
     updateAllViews();
+  }
+
+  function cycleStatus(wordOrId) {
+    const word = typeof wordOrId === 'object' && wordOrId !== null
+      ? wordOrId
+      : (typeof wordOrId === 'number' ? state.vocabulary[wordOrId] : state.vocabulary.find(w => w.id === String(wordOrId)));
+    if (!word) return;
+    const nextStatus = word.status === 'new' ? 'difficult' : (word.status === 'difficult' ? 'learned' : 'new');
+    setWordStatus(word, nextStatus);
   }
 
   function deleteWord(wordOrId) {
@@ -1475,6 +1550,15 @@
     if (el.editWordId) el.editWordId.value = word.id;
     if (el.editEnglishInput) el.editEnglishInput.value = word.english;
     if (el.editArabicInput) el.editArabicInput.value = word.arabic;
+    const currentStatus = word.status || 'new';
+    if (el.editStatusInput) el.editStatusInput.value = currentStatus;
+
+    if (el.editStatusPills) {
+      el.editStatusPills.querySelectorAll('.status-pill-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.status === currentStatus);
+      });
+    }
+
     const currentCat = (word.category || 'عام').trim() || 'عام';
     if (el.editCategoryInput) el.editCategoryInput.value = currentCat;
 
@@ -1531,6 +1615,7 @@
     const newEnglish = (el.editEnglishInput?.value || '').trim();
     const newArabic = (el.editArabicInput?.value || '').trim();
     const newCategory = (el.editCategoryInput?.value || '').trim() || 'عام';
+    const newStatus = el.editStatusInput?.value || word.status || 'new';
 
     if (!newEnglish || !newArabic) {
       alert('يرجى ملء الكلمة بالإنجليزية والترجمة بالعربية.');
@@ -1542,13 +1627,18 @@
     word.category = newCategory;
     word.tags = [newCategory];
 
+    if (['new', 'difficult', 'learned'].includes(newStatus) && newStatus !== word.status) {
+      setWordStatus(word, newStatus);
+    } else {
+      saveState(true);
+      updateAllViews();
+    }
+
     // تحديث كلمة اليوم إذا كانت هذه الكلمة هي كلمة اليوم
     if (state.wotd && state.wotd.wordId === word.id) {
       renderWordOfTheDay();
     }
 
-    saveState(true);
-    updateAllViews();
     closeEditWordModal();
   }
 
@@ -2102,6 +2192,7 @@
   function computeLessons() {
     const size = Math.max(1, safeNumber(state.hafazniLessons.lessonSize, 10));
     const cpFreq = Math.max(size, safeNumber(state.hafazniLessons.checkpointFrequency, 20));
+    const pathPrefix = state.hafazniLessons.pathId || 'p_default';
     const nodes = [];
     const totalWords = state.vocabulary ? state.vocabulary.length : 0;
     if (!totalWords) return [];
@@ -2119,9 +2210,11 @@
       wordsSinceLastCp += chunk.length;
       accumulatedWordsForCp.push(...chunk);
 
-      const lessonId = `lesson-${lessonNum}`;
+      const lessonId = `${pathPrefix}_lesson_${lessonNum}`;
+      const legacyId = `lesson-${lessonNum}`;
       nodes.push({
         id: lessonId,
+        legacyId: legacyId,
         type: 'lesson',
         index: globalIndex,
         lessonNumber: lessonNum,
@@ -2135,7 +2228,8 @@
       // إدراج محطة تقييم ومراجعة شاملة (Checkpoint) كلما اجتاز المستخدم cpFreq كلمة أو عند نهاية مسار مجموعة الدروس
       const shouldInsertCp = wordsSinceLastCp >= cpFreq || (wordCursor >= totalWords && accumulatedWordsForCp.length > chunk.length);
       if (shouldInsertCp) {
-        const cpId = `checkpoint-${checkpointNum}`;
+        const cpId = `${pathPrefix}_checkpoint_${checkpointNum}`;
+        const legacyCpId = `checkpoint-${checkpointNum}`;
         const uniqueCpWords = [];
         const seen = new Set();
         for (const w of accumulatedWordsForCp) {
@@ -2147,6 +2241,7 @@
 
         nodes.push({
           id: cpId,
+          legacyId: legacyCpId,
           type: 'checkpoint',
           index: globalIndex,
           checkpointNumber: checkpointNum,
@@ -2166,7 +2261,7 @@
   function getLessonStatus(node) {
     if (!node) return 'locked';
     const completedList = state.hafazniLessons.completedLessonIds || [];
-    if (completedList.includes(node.id) || completedList.includes(String(node.index)) || completedList.includes(Number(node.index))) {
+    if (completedList.includes(node.id) || (node.legacyId && completedList.includes(node.legacyId))) {
       return 'completed';
     }
     // العقدة الأولى في المسار مفتوحة دائماً
@@ -2175,7 +2270,7 @@
     // العقدة n تُفتح فقط عند إتمام العقدة n-1
     const allNodes = computeLessons();
     const prevNode = allNodes[node.index - 1];
-    if (prevNode && (completedList.includes(prevNode.id) || completedList.includes(String(prevNode.index)) || completedList.includes(Number(prevNode.index)))) {
+    if (prevNode && (completedList.includes(prevNode.id) || (prevNode.legacyId && completedList.includes(prevNode.legacyId)))) {
       return 'available';
     }
     return 'locked';
@@ -2812,6 +2907,9 @@
         state.hafazniLessons.completedLessonIds.push(String(completedLessonIndex));
       }
 
+      // إطلاق تأثير الاحتفال (Confetti) عند إتمام الدرس
+      triggerConfetti();
+
       const nodes = computeLessons();
       const nextIndex = (completedLessonIndex !== null && completedLessonIndex !== undefined)
         ? completedLessonIndex + 1
@@ -2904,7 +3002,253 @@
     updateHafazniOverview();
   }
 
-  // ==================== باقي الوظائف ====================
+  // ==================== باقي الوظائف والتصدير (v1.5.2) ====================
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function exportWordsToPDF(mode = 'all') {
+    const isDifficultOnly = mode === 'difficult';
+    const words = isDifficultOnly
+      ? state.vocabulary.filter(w => w.status === 'difficult')
+      : state.vocabulary;
+
+    if (!words.length) {
+      alert(isDifficultOnly ? '⚠️ لا توجد كلمات صعبة حالياً للتصدير.' : '⚠️ لا توجد كلمات للتصدير.');
+      return;
+    }
+
+    const title = isDifficultOnly ? 'قائمة الكلمات الصعبة للمراجعة' : 'قائمة الكلمات الكاملة';
+    const dateStr = new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const rowsHtml = words.map((w, i) => {
+      const statusLabel = w.status === 'learned' ? '✅ محفوظة' : (w.status === 'difficult' ? '🔴 صعبة' : '📝 جديدة');
+      const cat = escapeHtml(w.category || 'عام');
+      return `
+        <tr>
+          <td style="text-align: center; color: #64748b; width: 40px;">${i + 1}</td>
+          <td style="font-weight: 600; direction: ltr; text-align: left; font-size: 15px; color: #0f172a;">${escapeHtml(w.english)}</td>
+          <td style="direction: rtl; text-align: right; font-size: 15px; color: #1e293b;">${escapeHtml(w.arabic)}</td>
+          <td style="text-align: center; font-size: 13px; color: #475569;"><span style="background: #f1f5f9; padding: 3px 8px; border-radius: 6px;">${cat}</span></td>
+          <td style="text-align: center; font-size: 13px;">${statusLabel}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const printHtml = `
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <title>${escapeHtml(title)} - Flashcards v${APP_VERSION}</title>
+        <style>
+          @page { size: A4; margin: 15mm; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Arabic', Tahoma, sans-serif;
+            color: #0f172a;
+            background: #fff;
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+          }
+          .header {
+            text-align: center;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+          }
+          .header h1 {
+            margin: 0 0 6px 0;
+            font-size: 24px;
+            color: #1e293b;
+          }
+          .header .meta {
+            font-size: 13px;
+            color: #64748b;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+          }
+          th {
+            background-color: #f8fafc;
+            color: #334155;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            text-align: center;
+          }
+          td {
+            padding: 9px 12px;
+            border: 1px solid #e2e8f0;
+            vertical-align: middle;
+          }
+          tr:nth-child(even) {
+            background-color: #f8fafc;
+          }
+          .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 10px;
+          }
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>📖 ${escapeHtml(title)}</h1>
+          <div class="meta">
+            <span>📅 التاريخ: ${dateStr}</span>
+            <span>📊 إجمالي الكلمات: ${words.length}</span>
+            <span>⚡ تطبيق Flashcards v${APP_VERSION}</span>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th style="text-align: left;">English Word</th>
+              <th style="text-align: right;">الترجمة العربية</th>
+              <th>التصنيف</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+        <div class="footer">
+          تم إنشاء هذا الملف عبر تطبيق Flashcards للمراجعة الورقية والطباعة
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = '0';
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentDocument || printFrame.contentWindow?.document;
+    if (frameDoc) {
+      frameDoc.open();
+      frameDoc.write(printHtml);
+      frameDoc.close();
+      setTimeout(() => {
+        try {
+          printFrame.remove();
+        } catch (_) {}
+      }, 60000);
+    }
+  }
+
+  let confettiAnimId = null;
+  function triggerConfetti() {
+    const canvas = el.confettiCanvas || document.getElementById('confettiCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    if (confettiAnimId) {
+      cancelAnimationFrame(confettiAnimId);
+      confettiAnimId = null;
+    }
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+    canvas.style.display = 'block';
+
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#eab308'];
+    const count = 120;
+    const particles = [];
+
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: width / 2 + (Math.random() * 200 - 100),
+        y: height * 0.4 + (Math.random() * 100 - 50),
+        vx: (Math.random() - 0.5) * 16,
+        vy: (Math.random() - 0.8) * 18 - 4,
+        size: Math.random() * 8 + 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rotationSpeed: (Math.random() - 0.5) * 12,
+        gravity: 0.35,
+        drag: 0.98,
+        opacity: 1
+      });
+    }
+
+    const startTime = Date.now();
+    const duration = 3500;
+
+    function renderConfetti() {
+      const elapsed = Date.now() - startTime;
+      if (elapsed > duration) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'none';
+        confettiAnimId = null;
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.vx *= p.drag;
+        p.vy = (p.vy + p.gravity) * p.drag;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rotation += p.rotationSpeed;
+
+        if (elapsed > duration * 0.7) {
+          p.opacity = Math.max(0, (duration - elapsed) / (duration * 0.3));
+        }
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.globalAlpha = p.opacity;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        ctx.restore();
+      }
+
+      confettiAnimId = requestAnimationFrame(renderConfetti);
+    }
+
+    confettiAnimId = requestAnimationFrame(renderConfetti);
+  }
 
   function downloadTextWords() {
     if (!state.vocabulary.length) {
@@ -2922,7 +3266,7 @@
       exportedAt: new Date().toISOString(),
       data: buildPersistedState()
     };
-    downloadBlob(JSON.stringify(backup, null, 2), 'flashcards-backup-1.5.0.json', 'application/json;charset=utf-8');
+    downloadBlob(JSON.stringify(backup, null, 2), `flashcards-backup-${APP_VERSION}.json`, 'application/json;charset=utf-8');
   }
 
   async function importBackup(file) {
@@ -3220,7 +3564,24 @@
     el.selectAllBtn.addEventListener('click', selectAll);
     el.clearSelectionBtn.addEventListener('click', clearSelection);
     el.sendToHafazniBtn.addEventListener('click', goToHafazni);
-    el.downloadWordsBtn.addEventListener('click', downloadTextWords);
+    el.downloadWordsBtn.addEventListener('click', () => {
+      openModal(el.exportWordsModal);
+    });
+    el.closeExportWordsModal?.addEventListener('click', () => {
+      closeModal(el.exportWordsModal);
+    });
+    el.exportPdfAllBtn?.addEventListener('click', () => {
+      closeModal(el.exportWordsModal);
+      exportWordsToPDF('all');
+    });
+    el.exportPdfDifficultBtn?.addEventListener('click', () => {
+      closeModal(el.exportWordsModal);
+      exportWordsToPDF('difficult');
+    });
+    el.exportTxtBtn?.addEventListener('click', () => {
+      closeModal(el.exportWordsModal);
+      downloadTextWords();
+    });
     el.resetProgressBtn.addEventListener('click', resetProgress);
     el.resetBtn.addEventListener('click', resetAll);
 
@@ -3323,11 +3684,14 @@
         const size = sizeBtn ? safeNumber(sizeBtn.dataset.val, 10) : 10;
         const cpFreq = cpBtn ? safeNumber(cpBtn.dataset.val, 20) : 20;
 
+        // توليد معرّف مسار جديد لضمان استقلالية دروس المسار الجديد تماماً
+        state.hafazniLessons.pathId = 'path_' + uid();
         state.hafazniLessons.lessonSize = size;
         state.hafazniLessons.checkpointFrequency = cpFreq;
         state.hafazniLessons.notificationTime = timeVal;
         state.notifications.time = timeVal;
         state.hafazniLessons.pathCreated = true;
+        state.hafazniLessons.completedLessonIds = [];
 
         saveState(true);
         updateAllViews();
@@ -3533,6 +3897,17 @@
       saveEditWord();
     });
 
+    // أحداث أزرار تبديل الحالة داخل نافذة تعديل الكلمة
+    if (el.editStatusPills) {
+      el.editStatusPills.addEventListener('click', (e) => {
+        const btn = e.target.closest('.status-pill-btn');
+        if (!btn) return;
+        el.editStatusPills.querySelectorAll('.status-pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (el.editStatusInput) el.editStatusInput.value = btn.dataset.status;
+      });
+    }
+
     // أحداث نافذة مشاركة الكلمة كنص منسق
     el.wotdShareBtn?.addEventListener('click', () => {
       openShareWordModal(getWordOfTheDay());
@@ -3544,11 +3919,18 @@
     el.shareTwitterBtn?.addEventListener('click', shareToTwitter);
     el.shareNativeBtn?.addEventListener('click', shareNative);
 
+    // مستمعات فريق التطوير Team rustipx:
+    el.homeAboutUsBtn?.addEventListener('click', () => openModal(el.aboutUsModal));
+    el.settingsAboutUsBtn?.addEventListener('click', () => openModal(el.aboutUsModal));
+    el.closeAboutUsModal?.addEventListener('click', () => closeModal(el.aboutUsModal));
+
     window.addEventListener('click', event => {
       if (event.target === el.helpModal) closeModal(el.helpModal);
       if (event.target === el.updateModal) closeModal(el.updateModal);
       if (event.target === el.editWordModal) closeEditWordModal();
       if (event.target === el.shareWordModal) closeShareWordModal();
+      if (event.target === el.exportWordsModal) closeModal(el.exportWordsModal);
+      if (event.target === el.aboutUsModal) closeModal(el.aboutUsModal);
     });
 
     document.addEventListener('keydown', event => {
@@ -3624,10 +4006,13 @@
     updateNotificationUI();
 
     if (!state.vocabulary.length) {
-      navigateTo('homePage', false);
-    } else {
-      navigateTo(state.currentPage === 'homePage' ? 'studyPage' : state.currentPage, false);
+      state.vocabulary = normalizeVocabulary(STARTER_VOCABULARY);
+      saveState(true);
     }
+    
+    renderWordOfTheDay();
+    updateAllViews();
+    navigateTo('homePage', false);
 
     if (location.protocol === 'http:' || location.protocol === 'https:') {
       registerServiceWorker();

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#2563eb">
   <meta name="description" content="بطاقات كلمات للتعلم والمراجعة والاختبارات والتدريب الصوتي ونظام حفظني الذكي">
-  <title>📚 بطاقات المفردات الذكية – v1.5.1</title>
+  <title>📚 بطاقات المفردات الذكية – v1.5.2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
@@ -20,6 +20,9 @@
     <div class="header-icon-badge">✨ 📚 ✨</div>
     <h1>بطاقات المفردات الذكية</h1>
     <p class="subtitle">🚀 احفظ الكلمات بذكاء وسرعة مع التكرار والمراجعة المتباعدة</p>
+    <div class="header-actions-row">
+      <button type="button" class="team-header-pill-btn" id="homeAboutUsBtn" title="فريق التطوير rustipx">فريق التطوير rustipx (من نحن)</button>
+    </div>
     <div class="save-indicator" id="saveStatus">💾 محفوظ تلقائيًا</div>
   </div>
 
@@ -39,8 +42,8 @@
     <div class="wotd-body" id="wotdBody">
       <div class="wotd-word-row">
         <div class="wotd-word-main">
-          <span class="wotd-english" id="wotdEnglish">Loading...</span>
-          <span class="wotd-arabic" id="wotdArabic">...</span>
+          <span class="wotd-english" id="wotdEnglish">Inspiration</span>
+          <span class="wotd-arabic" id="wotdArabic">إلهام / تشجيع</span>
         </div>
         <button class="pronounce-btn wotd-pronounce" id="wotdPronounceBtn" title="نطق الكلمة" aria-label="نطق">🔊</button>
       </div>
@@ -485,7 +488,7 @@
       <input type="email" name="email" placeholder="📧 بريدك الإلكتروني *" required>
       <textarea name="message" rows="4" placeholder="✍️ اكتب رأيك، اقتراحك، أو تجربتك مع التطبيق..." required></textarea>
       <input type="hidden" name="access_key" value="c1d4a19f-7583-47ee-a733-db6276493109">
-      <input type="hidden" name="subject" value="رأي جديد من تطبيق الكلمات v1.5.1">
+      <input type="hidden" name="subject" value="رأي جديد من تطبيق الكلمات v1.5.2">
       <button type="submit" class="ctrl-btn primary">📨 إرسال الرأي والملاحظات</button>
     </form>
     <div id="feedbackSuccess" class="form-message success" style="display:none;"></div>
@@ -494,24 +497,33 @@
 
   <div class="settings-group">
     <label class="settings-label">ℹ️ معلومات الإصدار</label>
-    <p class="version-text">الإصدار الحالي: <strong>1.5.1 🚀</strong></p>
+    <p class="version-text">الإصدار الحالي: <strong>1.5.2 🚀</strong></p>
     <button class="ctrl-btn" id="viewFeaturesBtn" type="button">📋 عرض ميزات وتحديثات هذا الإصدار</button>
   </div>
 
   <div class="settings-group">
-    <label class="settings-label">👨‍💻 عن المبرمج</label>
-    <div class="about-mini">
-      <img src="https://avatars.githubusercontent.com/u/248045749?s=400&u=34d03b9693ad4ed9272fa36ba58edbbe5e187d14&v=4" alt="Omar Nasser" class="avatar-small">
-      <div>
-        <strong>Omar Nasser 🌟</strong>
-        <p>CS Student | Web Developer</p>
-        <div class="project-links">
-          <a href="https://github.com/rustinasser-beep" target="_blank" rel="noopener">🐙 GitHub</a>
-          <a href="https://rustinasser-beep.github.io/To_Do_List/" target="_blank" rel="noopener">📝 To-Do List</a>
-          <a href="https://rustinasser-beep.github.io/Age-Calculation/" target="_blank" rel="noopener">🧮 Calculator age</a>
+    <label class="settings-label">فريق التطوير والمشروع (Team rustipx)</label>
+    <div class="team-mini-preview">
+      <div class="team-mini-member">
+        <div class="mini-avatar github-avatar-mini" title="Omar Nasser">
+          <img src="https://avatars.githubusercontent.com/u/248045749?s=400&u=34d03b9693ad4ed9272fa36ba58edbbe5e187d14&v=4" alt="Omar Nasser" class="avatar-img-fit" loading="lazy">
+        </div>
+        <div class="mini-member-info">
+          <strong>Omar Nasser</strong>
+          <span>Lead Full-Stack Developer</span>
+        </div>
+      </div>
+      <div class="team-mini-member">
+        <div class="mini-avatar github-avatar-mini" title="HamzaPx">
+          <img src="https://avatars.githubusercontent.com/u/309126524?v=4" alt="HamzaPx" class="avatar-img-fit" loading="lazy">
+        </div>
+        <div class="mini-member-info">
+          <strong>HamzaPx</strong>
+          <span>Co-Developer & UI/UX</span>
         </div>
       </div>
     </div>
+    <button class="ctrl-btn primary" id="settingsAboutUsBtn" type="button">عرض تفاصيل الفريق (من نحن)</button>
   </div>
 </div>
 
@@ -522,7 +534,9 @@
   <button class="nav-btn" data-page="settingsPage"><span class="nav-icon">⚙️</span><span class="nav-label">الإعدادات</span></button>
 </nav>
 
-<div class="version-badge">v1.5.1</div>
+<div class="version-badge">v1.5.2</div>
+
+<canvas id="confettiCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;display:none;"></canvas>
 
 <div id="editWordModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editWordModalTitle">
   <div class="modal-content edit-word-modal-content">
@@ -530,8 +544,8 @@
     <div class="edit-modal-header">
       <div class="edit-modal-icon">✏️</div>
       <div>
-        <h3 id="editWordModalTitle" style="margin:0; font-size:1.2rem; font-weight:800;">تعديل الكلمة والتصنيف</h3>
-        <span class="edit-modal-subtitle">عدّل الكلمة الإنجليزية، ترجمتها، أو تصنيفها بسهولة</span>
+        <h3 id="editWordModalTitle" style="margin:0; font-size:1.2rem; font-weight:800;">تعديل الكلمة والتصنيف والحالة</h3>
+        <span class="edit-modal-subtitle">عدّل الكلمة، الترجمة، التصنيف، أو حالة الحفظ بسهولة</span>
       </div>
     </div>
 
@@ -546,6 +560,16 @@
       <div class="edit-input-group">
         <label for="editArabicInput" class="edit-input-label">الترجمة بالعربية (Arabic):</label>
         <input type="text" id="editArabicInput" class="edit-text-input" placeholder="مثال: تفاحة" required autocomplete="off">
+      </div>
+
+      <div class="edit-input-group">
+        <label class="edit-input-label">حالة الكلمة (Word Status):</label>
+        <div class="edit-status-pills" id="editStatusPills">
+          <button type="button" class="status-pill-btn" data-status="new">📝 جديدة</button>
+          <button type="button" class="status-pill-btn" data-status="difficult">⚠️ صعبة</button>
+          <button type="button" class="status-pill-btn" data-status="learned">✅ محفوظة</button>
+        </div>
+        <input type="hidden" id="editStatusInput" value="new">
       </div>
 
       <div class="edit-input-group">
@@ -619,63 +643,102 @@
   </div>
 </div>
 
+<div id="exportWordsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="exportWordsTitle">
+  <div class="modal-content export-modal-content">
+    <button class="close-modal" id="closeExportWordsModal" aria-label="إغلاق">×</button>
+    <div class="export-modal-header">
+      <div class="export-modal-icon">📄</div>
+      <div>
+        <h3 id="exportWordsTitle" style="margin:0; font-size:1.2rem; font-weight:800;">تصدير وطباعة قائمة الكلمات</h3>
+        <span class="export-modal-subtitle">اختر صيغة التصدير المناسبة للمراجعة الورقية أو الحفظ</span>
+      </div>
+    </div>
+
+    <div class="export-options-grid">
+      <button type="button" class="export-option-card" id="exportPdfAllBtn">
+        <span class="export-card-icon">📑</span>
+        <div class="export-card-info">
+          <strong>تصدير / طباعة PDF (جميع الكلمات)</strong>
+          <span>ملف PDF منسق وجاهز للطباعة والمراجعة لجميع الكلمات الحالية</span>
+        </div>
+      </button>
+
+      <button type="button" class="export-option-card" id="exportPdfDifficultBtn">
+        <span class="export-card-icon">⚠️</span>
+        <div class="export-card-info">
+          <strong>تصدير / طباعة PDF (الكلمات الصعبة فقط)</strong>
+          <span>ملف PDF خاص بالكلمات التي تحتاج لتركيز وتثبيت ورقي</span>
+        </div>
+      </button>
+
+      <button type="button" class="export-option-card" id="exportTxtBtn">
+        <span class="export-card-icon">📝</span>
+        <div class="export-card-info">
+          <strong>تصدير ملف نصي (TXT)</strong>
+          <span>تنزيل ملف نصي بسيط للكلمات وترجماتها</span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="helpModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
   <div class="modal-content help-modal-content">
     <button class="close-modal" id="closeHelpModal" aria-label="إغلاق">×</button>
     <div class="help-header">
       <div class="help-badge-icon">📖</div>
       <div>
-        <h2 id="helpTitle" style="margin:0; font-size:1.3rem;">دليل استخدام التطبيق (v1.5.1)</h2>
+        <h2 id="helpTitle" style="margin:0; font-size:1.3rem;">دليل استخدام التطبيق (v1.5.2)</h2>
         <p style="margin:4px 0 0; font-size:0.82rem; color:var(--text-secondary);">كل ما تحتاجه لتجربة حفظ ومراجعة ذكية وسريعة</p>
       </div>
     </div>
 
     <div class="help-body">
       <div class="help-card">
+        <div class="help-card-icon">🧠</div>
+        <div class="help-card-info">
+          <h4>1. مسار حفظني الذكي المتسلسل</h4>
+          <p>مسار تعليمي ذكي مستقل بالكامل يفتح الدروس بالتتابع مع محطات تقييم تراكمية واحتفال بالإنجاز عند إتمام كل درس.</p>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="help-card-icon">🔄</div>
+        <div class="help-card-info">
+          <h4>2. تغيير حالة الكلمة يدويًا</h4>
+          <p>يمكنك تغيير حالة أي كلمة مباشرة (جديدة، صعبة، محفوظة) من قائمة الكلمات أو عبر نافذة التعديل بنقرة واحدة.</p>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="help-card-icon">📑</div>
+        <div class="help-card-info">
+          <h4>3. تصدير وطباعة PDF</h4>
+          <p>اطبع قائمة كلماتك أو الكلمات الصعبة كملف PDF منظم وجاهز للمراجعة الورقية في أي وقت.</p>
+        </div>
+      </div>
+
+      <div class="help-card">
         <div class="help-card-icon">🌟</div>
         <div class="help-card-info">
-          <h4>1. كلمة اليوم (Word of the Day)</h4>
-          <p>يتم اختيار كلمة عشوائية كل يوم وعرضها في قمة الصفحة الرئيسية مع النطق الصوتي وإمكانية مراجعتها أو اختبارها وتثبيتها يوميًا.</p>
+          <h4>4. كلمة اليوم (Word of the Day)</h4>
+          <p>يتم اختيار كلمة عشوائية كل يوم وعرضها في قمة الصفحة الرئيسية مع النطق الصوتي ومشاركتها كنص منسق.</p>
         </div>
       </div>
 
       <div class="help-card">
         <div class="help-card-icon">🏷️</div>
         <div class="help-card-info">
-          <h4>2. تصنيف الكلمات (Tags & Categories)</h4>
-          <p>يمكنك تصنيف كل كلمة (مثل: أفعال، سفر، طعام، عمل، عام) والفلترة بضغطة زر واحدة في صفحة الكلمات حسب الموضوع أو الصعوبة.</p>
-        </div>
-      </div>
-
-      <div class="help-card">
-        <div class="help-card-icon">🧠</div>
-        <div class="help-card-info">
-          <h4>3. مسار حفظني المتسلسل ومحطات التقييم</h4>
-          <p>يتم إنشاء المسار حسب تفضيلاتك، وتفتح الدروس بالتتابع (يفتح الدرس الجديد فقط بعد إتقان الدرس السابق)، مع محطات اختبار مراجعة شاملة 🏆 كل 20 كلمة (أو العدد الذي تختاره).</p>
+          <h4>5. تصنيف الكلمات والفلترة</h4>
+          <p>صنّف كلماتك وفلترها بضغطة زر حسب الموضوع أو مستوى الصعوبة.</p>
         </div>
       </div>
 
       <div class="help-card">
         <div class="help-card-icon">⏰</div>
         <div class="help-card-info">
-          <h4>4. تخصيص موعد الإشعارات اليومية</h4>
-          <p>حدد الساعة المناسبة لك للتذكير بالدراسة اليومية لتثبيت حفظك في الذاكرة طويلة المدى دون أي تأخير.</p>
-        </div>
-      </div>
-
-      <div class="help-card">
-        <div class="help-card-icon">🔥</div>
-        <div class="help-card-info">
-          <h4>5. الستريك اليومي وعداد وقت الحفظ</h4>
-          <p>يكافئك الستريك على دراستك المتواصلة يومًا بعد يوم مع حساب وقت الحفظ الفعلي وتحويله لساعات ودقائق.</p>
-        </div>
-      </div>
-
-      <div class="help-card">
-        <div class="help-card-icon">✍️</div>
-        <div class="help-card-info">
-          <h4>6. بطاقات وأوضاع الاختبار</h4>
-          <p>استمتع ببطاقات الفلاش كاردز مع النطق الصوتي، واختبارات الكتابة، والخيارات، والتعرف الصوتي المباشر.</p>
+          <h4>6. التذكير اليومي والستريك</h4>
+          <p>حدد موعد التنبيه اليومي المناسب لك وحافظ على الستريك وعدد ساعات الحفظ المستمر.</p>
         </div>
       </div>
     </div>
@@ -688,42 +751,117 @@
     <div class="update-header">
       <div class="update-badge-icon">🚀</div>
       <div>
-        <h2 id="updateTitle" style="margin:0; font-size:1.3rem;">تحديثات وميزات الإصدار 1.5.1</h2>
-        <span class="version-subtitle">الترقية الشاملة للتعلم المخصص والذكي</span>
+        <h2 id="updateTitle" style="margin:0; font-size:1.3rem;">تحديثات وميزات الإصدار 1.5.2</h2>
+        <span class="version-subtitle">الترقية الشاملة لاستقرار المسارات والتعلم التكيفي</span>
       </div>
     </div>
     <div class="update-body">
       <div class="update-section">
-        <h3 class="update-section-title">🌟 ميزة "كلمة اليوم" (Word of the Day)</h3>
+        <h3 class="update-section-title">🗺️ استقلالية تامة للمسارات والدروس</h3>
         <ul class="update-list">
-          <li><strong>اختيار يومي تلقائي:</strong> كلمة عشوائية جديدة كل يوم في واجهة الصفحة الرئيسية لتنشيط حصيلتك اللغوية.</li>
-          <li><strong>مراجعة واختبار سريع:</strong> الاستماع للنطق، مراجعة المعنى، واختبار حفظ الكلمة بضغطة زر واحدة.</li>
+          <li><strong>معرفات فريدة مستقلة:</strong> كل مسار ودرس يمتلك معرفًا خاصًا يمنع توارث حالة الإكمال أو الخلط عند إنشاء مسارات جديدة.</li>
+          <li><strong>حفظ موثوق للتقدم:</strong> الاحتفاظ التام بسجل الدروس المكتملة دون أي تعارض.</li>
         </ul>
       </div>
 
       <div class="update-section">
-        <h3 class="update-section-title">🏷️ تصنيف الكلمات (Tags & Categories) والفلترة</h3>
+        <h3 class="update-section-title">🔄 تغيير وتعيين حالة الكلمة يدويًا</h3>
         <ul class="update-list">
-          <li><strong>إضافة التصنيفات:</strong> إضافة تصنيف لكل كلمة (مثل: سفر، أفعال، طعام، عمل، عام) عند الإضافة أو الاستيراد.</li>
-          <li><strong>شريط الفلترة السريعة:</strong> تصفح الكلمات حسب الموضوع أو الصعوبة (صعبة، محفوظة، جديدة) بكل سهولة.</li>
+          <li><strong>تعديل فوري من القائمة والبطاقة:</strong> إمكانية تحويل أي كلمة إلى (جديدة / صعبة / محفوظة) بنقرة زر أو عبر نافذة التعديل.</li>
+          <li><strong>مزامنة فورية:</strong> تحديث الإحصائيات والحفظ الفوري في الذاكرة دون الحاجة لإعادة التحميل.</li>
         </ul>
       </div>
 
       <div class="update-section">
-        <h3 class="update-section-title">🗺️ مسار حفظني المتسلسل ومحطات التقييم (Checkpoints)</h3>
+        <h3 class="update-section-title">🧠 نظام حفظني التكيفي الذكي</h3>
         <ul class="update-list">
-          <li><strong>فتح متسلسل ذكي:</strong> لا يُفتح الدرس التالي إلا بعد إتقان وحل الدرس السابق بنجاح لضمان ثبات الكلمات.</li>
-          <li><strong>محطات تقييم شاملة (🏆):</strong> اختبار مراجعة تراكمي بعد كل 20 كلمة (أو العدد الذي تخصصه).</li>
-          <li><strong>معالج إنشاء المسار:</strong> تخصيص عدد كلمات كل درس وتكرار الاختبارات وموعد التذكير قبل بدء المسار.</li>
+          <li><strong>تكرار ديناميكي للكلمات الصعبة:</strong> الكلمات التي تخطئ فيها تتكرر سريعًا حتى تثبت في الذاكرة.</li>
+          <li><strong>تخريج تلقائي للمتقن:</strong> الكلمات المتقنة يتم تخريجها بسلاسة لمنع التكرار غير الضروري.</li>
         </ul>
       </div>
 
       <div class="update-section">
-        <h3 class="update-section-title">⏰ تحديد موعد الإشعارات والتذكير اليومي</h3>
+        <h3 class="update-section-title">📄 تصدير وطباعة PDF للكلمات</h3>
         <ul class="update-list">
-          <li><strong>جدولة بالساعة والدقيقة:</strong> اختر الوقت الدقيق لتلقي تنبيه التذكير بالدراسة اليومية.</li>
-          <li><strong>خيارات سريعة:</strong> أزرار جاهزة للأوقات الشائعة مع إمكانية تجربة الإشعار فورًا.</li>
+          <li><strong>طباعة PDF منسقة:</strong> تصدير كافة الكلمات أو الكلمات الصعبة فقط كجدول أنيق جاهز للطباعة والمذاكرة الورقية.</li>
+          <li><strong>خيارات تصدير متعددة:</strong> ملف PDF أو نصي TXT أو نسخة احتياطية كاملة.</li>
         </ul>
+      </div>
+
+      <div class="update-section">
+        <h3 class="update-section-title">🎉 تأثير احتفالي مبهج (Confetti)</h3>
+        <ul class="update-list">
+          <li><strong>تشجيع فوري:</strong> احتفال حماسي بالألوان عند إتمام الدرس أو محطة التقييم في مسار حفظني الذكي.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="aboutUsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutUsTitle">
+  <div class="modal-content about-modal-content">
+    <button class="close-modal" id="closeAboutUsModal" aria-label="إغلاق">×</button>
+    
+    <div class="about-modal-header">
+      <div class="about-header-badge">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      </div>
+      <div>
+        <h2 id="aboutUsTitle" style="margin:0; font-size:1.35rem; font-weight:800;">فريق التطوير | Team rustipx</h2>
+        <p style="margin:4px 0 0; font-size:0.85rem; color:var(--text-secondary);">المطورون القائمون على مشروع بطاقات المفردات الذكية (Flashcards)</p>
+      </div>
+    </div>
+
+    <div class="about-modal-body">
+      <!-- بطاقة المطور 1: Omar Nasser -->
+      <div class="dev-card">
+        <div class="dev-card-top">
+          <div class="dev-avatar-box github-avatar-border" title="Omar Nasser">
+            <img src="https://avatars.githubusercontent.com/u/248045749?s=400&u=34d03b9693ad4ed9272fa36ba58edbbe5e187d14&v=4" alt="Omar Nasser" class="avatar-img-fit" loading="lazy">
+          </div>
+          <div class="dev-meta">
+            <div class="dev-name-row">
+              <h3 class="dev-name">Omar Nasser</h3>
+            </div>
+            <span class="dev-role-badge">Lead Full-Stack Developer & Founder</span>
+          </div>
+        </div>
+        <p class="dev-bio">مطور برمجيات ومؤسس فريق rustipx، مهتم بتطوير تطبيقات الويب التعليمية الذكية وخوارزميات الحفظ والتكرار المتباعد.</p>
+        <div class="dev-actions-row">
+          <a href="https://github.com/rustinasser-beep" target="_blank" rel="noopener" class="dev-link-btn github-btn">
+            <span>GitHub Profile</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- بطاقة المطور 2: HamzaPx -->
+      <div class="dev-card">
+        <div class="dev-card-top">
+          <div class="dev-avatar-box github-avatar-border" title="HamzaPx">
+            <img src="https://avatars.githubusercontent.com/u/309126524?v=4" alt="HamzaPx" class="avatar-img-fit" loading="lazy">
+          </div>
+          <div class="dev-meta">
+            <div class="dev-name-row">
+              <h3 class="dev-name">HamzaPx</h3>
+              <span class="dev-badge-tech">PX Co-Dev</span>
+            </div>
+            <span class="dev-role-badge designer-role">Co-Developer & UI/UX Specialist</span>
+          </div>
+        </div>
+        <p class="dev-bio">مبرمج شريك في فريق rustipx، متخصص في تصميم واجهات المستخدم التفاعلية (UI/UX) وتجربة الاستخدام.</p>
+        <div class="dev-actions-row">
+          <a href="https://github.com/h78956162-web" target="_blank" rel="noopener" class="dev-link-btn github-btn">
+            <span>GitHub Profile</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- زر الدخول المباشر لمستودع المشروع على GitHub -->
+      <div class="repo-direct-action">
+        <a href="https://github.com/rustinasser-beep/flashcards-v1.5.git" target="_blank" rel="noopener" class="ctrl-btn primary repo-main-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          <span>فتح مستودع المشروع على GitHub</span>
+        </a>
       </div>
     </div>
   </div>
