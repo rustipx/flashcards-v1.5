@@ -130,41 +130,163 @@
 
 <div class="page" id="testPage">
   <div class="header">
-    <div class="header-icon-badge">✍️ 🎯</div>
-    <h2>وضع الاختبار والتقييم</h2>
-    <p class="subtitle">🏆 اختبر قوة حفظك بالطريقة التفاعلية المفضلة لديك</p>
+    <div class="header-icon-badge">✍️ 🏆</div>
+    <h2>وضع التقييم والاختبار الذكي</h2>
+    <p class="subtitle">🎯 قيّم قوة حفظك بكتابة الكلمات أو راجع الأخطاء بسهولة</p>
   </div>
 
-  <div class="mode-toggle" id="testModeToggle">
-    <button id="typeWritingBtn" class="active">✍️ كتابة</button>
-    <button id="typeChoiceBtn">🔘 خيارات</button>
-    <button id="typeVoiceBtn">🎙️ نطق صوتي</button>
+  <!-- أزرار اختيار نوع التقييم والاختبار -->
+  <div class="assessment-mode-bar" id="assessmentModeBar">
+    <button type="button" class="assessment-tab-btn active" id="tabComprehensiveBtn" data-test-tab="comprehensive">
+      <span class="tab-icon">🏆</span>
+      <div class="tab-info">
+        <strong>تقييم شامل</strong>
+        <span class="tab-desc">الكلمات المحفوظة</span>
+      </div>
+    </button>
+    <button type="button" class="assessment-tab-btn" id="tabFinalBtn" data-test-tab="final">
+      <span class="tab-icon">🎓</span>
+      <div class="tab-info">
+        <strong>التقييم النهائي</strong>
+        <span class="tab-desc">كافة الكلمات</span>
+      </div>
+    </button>
+    <button type="button" class="assessment-tab-btn" id="tabPracticeBtn" data-test-tab="practice">
+      <span class="tab-icon">✍️</span>
+      <div class="tab-info">
+        <strong>تدريب حر</strong>
+        <span class="tab-desc">كتابة / خيارات / صوت</span>
+      </div>
+    </button>
+    <button type="button" class="assessment-tab-btn" id="tabReviewListBtn" data-test-tab="review">
+      <span class="tab-icon">📋</span>
+      <div class="tab-info">
+        <strong>راجع على الكلمات دول</strong>
+        <span class="tab-desc" id="reviewBadgeDesc">0 كلمة للمراجعة</span>
+      </div>
+    </button>
   </div>
 
-  <div class="card-wrapper">
-    <div class="flashcard test-flashcard" id="testFlashcard">
-      <div class="card-face" id="testCardFront">?</div>
-      <div class="word-status" id="testWordStatus">📝 جديدة</div>
-      <button class="pronounce-btn" id="testPronounceBtn" title="استمع للنطق" aria-label="نطق">🔊</button>
+  <!-- 1. شاشة الاختبار / التقييم الجاري (كتابة إملائية وتدريب) -->
+  <div id="assessmentActiveSection" class="assessment-active-section">
+    <!-- شريط تقدم التقييم -->
+    <div class="assessment-progress-card" id="assessmentProgressCard">
+      <div class="assessment-progress-header">
+        <span class="assessment-current-badge" id="assessmentTypeBadge">🏆 تقييم شامل</span>
+        <span class="assessment-counter-text" id="assessmentCounterText">1 / 10</span>
+        <button type="button" class="exit-test-btn" id="exitAssessmentBtn" title="إنهاء التقييم والعودة">✕ إنهاء</button>
+      </div>
+      <div class="assessment-progress-bar-wrap">
+        <div class="assessment-progress-bar-fill" id="assessmentProgressBarFill" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <!-- بطاقة التبديل في التدريب الحر فقط -->
+    <div class="mode-toggle" id="testModeToggle" style="display:none;">
+      <button id="typeWritingBtn" class="active" type="button">✍️ كتابة</button>
+      <button id="typeChoiceBtn" type="button">🔘 خيارات</button>
+      <button id="typeVoiceBtn" type="button">🎙️ نطق صوتي</button>
+    </div>
+
+    <div class="card-wrapper">
+      <div class="flashcard test-flashcard" id="testFlashcard">
+        <div class="card-face" id="testCardFront">?</div>
+        <div class="word-status" id="testWordStatus">📝 جديدة</div>
+        <button class="pronounce-btn" id="testPronounceBtn" title="استمع للنطق" aria-label="نطق" type="button">🔊</button>
+      </div>
+    </div>
+
+    <div class="writing-input-wrapper" id="writingInputWrapper">
+      <input type="text" id="guessInput" placeholder="✍️ اكتب الكلمة الصحيحة هنا..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+
+    <div class="options-grid" id="optionsGrid" style="display:none;"></div>
+
+    <div id="voicePanel" class="voice-panel" style="display:none;">
+      <button class="record-btn" id="recordBtn" type="button">🎙️ اضغط للتسجيل الصوتي</button>
+      <p class="voice-state" id="voiceState">🎤 سيتم الاستماع لنطقك باللغة المناسبة تلقائيًا.</p>
+      <div class="voice-result" id="voiceResult"></div>
+    </div>
+
+    <div class="test-feedback" id="testFeedback"></div>
+
+    <div class="control-group" id="assessmentControls">
+      <button class="ctrl-btn primary" id="checkBtn" type="button">✅ تأكيد وتحقق</button>
+      <button class="ctrl-btn" id="hintBtn" type="button">💡 تلميح</button>
+      <button class="ctrl-btn" id="skipBtn" type="button">⏭️ تجاوز</button>
+      <button class="ctrl-btn" id="markDifficultBtn" type="button">🔴 صعبة</button>
     </div>
   </div>
 
-  <input type="text" id="guessInput" placeholder="✍️ اكتب الإجابة هنا..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-  <div class="options-grid" id="optionsGrid"></div>
+  <!-- 2. شاشة ملخص التقييم والنتائج (Assessment Summary) -->
+  <div id="assessmentSummarySection" class="card assessment-summary-card" style="display:none;">
+    <div class="summary-header">
+      <div class="summary-trophy" id="assessmentTrophyIcon">🏆</div>
+      <h3 id="assessmentSummaryTitle">اكتمل التقييم بنجاح!</h3>
+      <p id="assessmentSummarySubtitle" class="summary-subtitle">إليك ملخص نتيجتك ودقة إجاباتك:</p>
+    </div>
 
-  <div id="voicePanel" class="voice-panel" style="display:none;">
-    <button class="record-btn" id="recordBtn">🎙️ اضغط للتسجيل الصوتي</button>
-    <p class="voice-state" id="voiceState">🎤 سيتم الاستماع لنطقك باللغة المناسبة تلقائيًا.</p>
-    <div class="voice-result" id="voiceResult"></div>
+    <div class="assessment-score-grid">
+      <div class="score-stat-box total">
+        <span class="score-num" id="summaryTotalWords">0</span>
+        <span class="score-label">إجمالي الكلمات</span>
+      </div>
+      <div class="score-stat-box correct">
+        <span class="score-num" id="summaryCorrectWords">0</span>
+        <span class="score-label">إجابات صحيحة</span>
+      </div>
+      <div class="score-stat-box wrong">
+        <span class="score-num" id="summaryWrongWords">0</span>
+        <span class="score-label">أخطاء للمراجعة</span>
+      </div>
+      <div class="score-stat-box percent">
+        <span class="score-num" id="summaryPercentVal">0%</span>
+        <span class="score-label">نسبة الإتقان</span>
+      </div>
+    </div>
+
+    <!-- قسم: راجع على الكلمات دول (الكلمات الخاطئة في الجلسة) -->
+    <div id="assessmentMistakesBox" class="assessment-mistakes-container" style="display:none;">
+      <div class="mistakes-header">
+        <span class="mistakes-icon">📝</span>
+        <div>
+          <h4>راجع على الكلمات دول</h4>
+          <span>تم تسجيل هذه الكلمات في قائمة المراجعة لتثبيتها وإتقان كتابتها</span>
+        </div>
+      </div>
+      <div class="mistakes-word-list" id="assessmentMistakesList"></div>
+      <button type="button" class="ctrl-btn primary retry-mistakes-btn" id="retryMistakesBtn">
+        🔁 بدء اختبار وتثبيت كلمات المراجعة الآن
+      </button>
+    </div>
+
+    <div class="summary-actions-row">
+      <button type="button" class="ctrl-btn primary" id="restartAssessmentBtn">🔄 إعادة التقييم</button>
+      <button type="button" class="ctrl-btn" id="goToReviewListBtn">📋 قائمة المراجعة</button>
+      <button type="button" class="ctrl-btn" id="goToHomeFromTestBtn">🏠 الرئيسية</button>
+    </div>
   </div>
 
-  <div class="test-feedback" id="testFeedback"></div>
+  <!-- 3. شاشة قائمة المراجعة الدائمة (قائمة: راجع على الكلمات دول) -->
+  <div id="reviewListSection" class="card review-list-card" style="display:none;">
+    <div class="review-header">
+      <div class="review-header-icon">📋</div>
+      <div>
+        <h3>قائمة: راجع على الكلمات دول</h3>
+        <p class="review-header-desc">الكلمات التي أخطأت فيها في الاختبارات أو وضعتها للمراجعة لتثبيتها</p>
+      </div>
+    </div>
 
-  <div class="control-group">
-    <button class="ctrl-btn primary" id="checkBtn">✅ تأكيد وتحقق</button>
-    <button class="ctrl-btn" id="hintBtn">💡 تلميح</button>
-    <button class="ctrl-btn" id="skipBtn">⏭️ تجاوز</button>
-    <button class="ctrl-btn" id="markDifficultBtn">🔴 حفظ كصعبة</button>
+    <div class="review-actions-bar">
+      <button type="button" class="ctrl-btn primary" id="startReviewFromListBtn">
+        ✍️ بدء اختبار كتابة لكلمات المراجعة (<span id="reviewListActionCount">0</span>)
+      </button>
+      <button type="button" class="ctrl-btn danger-btn" id="clearReviewListBtn">
+        🗑️ مسح القائمة
+      </button>
+    </div>
+
+    <div id="reviewWordsContainer" class="review-words-container"></div>
   </div>
 </div>
 
