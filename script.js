@@ -42,24 +42,14 @@
     testLocked: false,
     questionToken: null,
     selectedIds: [],
-    reviewList: [],              // قائمة كلمات للمراجعة ("راجع على الكلمات دول")
-    assessmentTab: 'comprehensive', // 'comprehensive' | 'final' | 'practice' | 'review'
-    assessment: {
-      active: false,
-      mode: 'comprehensive',
-      words: [],
-      currentIndex: 0,
-      correctCount: 0,
-      wrongCount: 0,
-      mistakes: [],
-      processing: false
-    },
     hafazni: {
       active: false,
       sessionWords: [],      // array of session word objects with temp data
       currentIndex: 0,
       totalWords: 0,
       activeLessonId: null,  // معرف الدرس أو التقييم الحالي لو الجلسة اتفتحت من خريطة المسار
+      activeLessonIndex: null,
+      isCheckpoint: false,   // جلسة تقييم شامل (اختبار لمرة واحدة)
       mistakes: [],
       processing: false,
       summary: { correct: 0, wrong: 0, attempts: 0, mastered: [], needsReview: [] }
@@ -133,7 +123,7 @@
       'lessonCompleteNote','completedLessonNumber','nextLessonBtn',
       'hafazniTypeToggle','hafazniTabLessonsBtn','hafazniTabCustomBtn','selectWordsForHafazniBtn',
       'hafazniDailyNotifBar','hafazniDailyNotifMsg','hafazniEnableNotifBtn',
-      'hafazniMapProgressBox','hafazniMapProgressTitle','hafazniMapProgressCount','hafazniMapProgressBarFill',
+      'hafazniMapProgressBox','hafazniMapProgressTitle','hafazniMapProgressCount','hafazniMapProgressBarFill','jumpToCurrentLessonBtn',
       'hafazniWindingWrapper','hafazniMapSvg','startCurrentLessonDirectBtn',
       'toggleNotificationsBtn','testNotificationBtn','notificationStatusText',
       'notificationStateBadge','notificationStatusBox','notifStatusIndicatorIcon',
@@ -158,17 +148,8 @@
       // عناصر تصدير الـ PDF واحتفال الكنفيتي (v1.5.2):
       'exportWordsModal','closeExportWordsModal','exportPdfAllBtn','exportPdfDifficultBtn','exportTxtBtn',
       'confettiCanvas',
-      // عناصر التقييم الشامل والنهائي وقائمة المراجعة:
-      'tabComprehensiveBtn','tabFinalBtn','tabPracticeBtn','tabReviewListBtn',
-      'assessmentActiveSection','assessmentProgressCard','assessmentTypeBadge',
-      'assessmentCounterText','exitAssessmentBtn','assessmentProgressBarFill',
-      'writingInputWrapper','assessmentControls','assessmentSummarySection',
-      'assessmentTrophyIcon','assessmentSummaryTitle','assessmentSummarySubtitle',
-      'summaryTotalWords','summaryCorrectWords','summaryWrongWords','summaryPercentVal',
-      'assessmentMistakesBox','assessmentMistakesList','retryMistakesBtn',
-      'restartAssessmentBtn','goToReviewListBtn','goToHomeFromTestBtn',
-      'reviewListSection','startReviewFromListBtn','clearReviewListBtn',
-      'reviewWordsContainer','reviewListActionCount','reviewBadgeDesc',
+      // عناصر مراجعة أخطاء التقييم الشامل في حفظني:
+      'hafazniMistakesBox','hafazniMistakesList',
       // عناصر فريق التطوير (Team rustipx):
       'homeAboutUsBtn','settingsAboutUsBtn','aboutUsModal','closeAboutUsModal',
       'copyRepoUrlBtn','repoUrlText','repoCopyToast'
@@ -265,8 +246,6 @@
       currentPage: state.currentPage,
       testSubMode: state.testSubMode,
       selectedIds: state.selectedIds,
-      reviewList: state.reviewList || [],
-      assessmentTab: state.assessmentTab || 'comprehensive',
       hafazniLessons: state.hafazniLessons,
       hafazniTab: state.hafazniTab || 'lessons',
       wotd: state.wotd,
@@ -313,8 +292,6 @@
       state.testSubMode = ['writing','choice','voice'].includes(data.testSubMode)
         ? data.testSubMode : 'writing';
       state.selectedIds = Array.isArray(data.selectedIds) ? data.selectedIds.map(String) : [];
-      state.reviewList = Array.isArray(data.reviewList) ? data.reviewList.map(String) : [];
-      state.assessmentTab = ['comprehensive','final','practice','review'].includes(data.assessmentTab) ? data.assessmentTab : 'comprehensive';
       const savedLessons = data.hafazniLessons || {};
       const savedPathId = typeof savedLessons.pathId === 'string' && savedLessons.pathId ? savedLessons.pathId : 'p_default';
       const rawCompleted = Array.isArray(savedLessons.completedLessonIds) ? savedLessons.completedLessonIds : [];
@@ -434,7 +411,9 @@
     if (pageId === 'wordsPage') renderWordList(state.search);
     if (pageId === 'hafazniPage') updateHafazniOverview();
     if (pageId === 'testPage') {
-      initAssessmentTab(state.assessmentTab || 'comprehensive');
+      resetTestUI();
+      updateTestModeUI();
+      updateTestView();
     }
     if (pageId === 'studyPage') updateStudyView();
 
@@ -1142,7 +1121,6 @@
     ];
     modeButtons.forEach(([mode, btn]) => btn?.classList.toggle('active', state.testSubMode === mode));
 
-    if (el.writingInputWrapper) el.writingInputWrapper.style.display = state.testSubMode === 'writing' ? 'flex' : 'none';
     el.guessInput.style.display = state.testSubMode === 'writing' ? '' : 'none';
     el.optionsGrid.style.display = state.testSubMode === 'choice' ? 'grid' : 'none';
     el.voicePanel.style.display = state.testSubMode === 'voice' ? 'block' : 'none';
@@ -1199,487 +1177,11 @@
     el.optionsGrid.innerHTML = '';
   }
 
-  // ==================== منطق التقييم الشامل والنهائي وقائمة المراجعة ====================
-  
-  function shuffleArrayCopy(arr) {
-    const copy = [...arr];
-    for (let i = copy.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy;
-  }
-
-  function updateReviewBadges() {
-    const count = (state.reviewList && state.reviewList.length) || 0;
-    if (el.reviewBadgeDesc) {
-      el.reviewBadgeDesc.textContent = count > 0 ? `${count} كلمة للمراجعة` : 'فارغة حالياً';
-    }
-    if (el.reviewListActionCount) {
-      el.reviewListActionCount.textContent = `${count}`;
-    }
-  }
-
-  function switchAssessmentTab(tabName) {
-    state.assessmentTab = tabName;
-    saveState();
-    initAssessmentTab(tabName);
-  }
-
-  function initAssessmentTab(tabName) {
-    const tabs = [
-      ['comprehensive', el.tabComprehensiveBtn],
-      ['final', el.tabFinalBtn],
-      ['practice', el.tabPracticeBtn],
-      ['review', el.tabReviewListBtn]
-    ];
-    tabs.forEach(([name, btn]) => btn?.classList.toggle('active', tabName === name));
-    updateReviewBadges();
-
-    if (tabName === 'comprehensive') {
-      startComprehensiveAssessment();
-    } else if (tabName === 'final') {
-      startFinalAssessment();
-    } else if (tabName === 'practice') {
-      startPracticeMode();
-    } else if (tabName === 'review') {
-      renderReviewListView();
-    }
-  }
-
-  function startPracticeMode() {
-    state.assessment.active = false;
-    if (el.assessmentActiveSection) el.assessmentActiveSection.style.display = 'block';
-    if (el.assessmentSummarySection) el.assessmentSummarySection.style.display = 'none';
-    if (el.reviewListSection) el.reviewListSection.style.display = 'none';
-
-    if (el.assessmentProgressCard) el.assessmentProgressCard.style.display = 'flex';
-    if (el.assessmentTypeBadge) el.assessmentTypeBadge.textContent = '🎯 تمرين عام';
-    if (el.assessmentCounterText) el.assessmentCounterText.textContent = `${state.currentIndex + 1} / ${state.vocabulary.length || 1}`;
-    if (el.assessmentProgressBarFill) {
-      const pct = ((state.currentIndex + 1) / Math.max(1, state.vocabulary.length)) * 100;
-      el.assessmentProgressBarFill.style.width = `${pct}%`;
-    }
-
-    updateTestModeUI();
-    resetTestUI();
-    updateTestView();
-  }
-
-  function startComprehensiveAssessment() {
-    // التقييم الشامل: اختبار كتابة على الكلمات المحفوظة فقط
-    const learnedWords = state.vocabulary.filter(w => w.status === 'learned');
-
-    if (!learnedWords.length) {
-      if (el.assessmentActiveSection) el.assessmentActiveSection.style.display = 'none';
-      if (el.assessmentSummarySection) el.assessmentSummarySection.style.display = 'none';
-      if (el.reviewListSection) el.reviewListSection.style.display = 'none';
-      
-      alert('لم تقم بتحديد أو إنهاء أي كلمات كمحفوظة بعد.\nادرس بعض الكلمات أو حددها كمحفوظة لتفعيل "التقييم الشامل"، أو خُض "التقييم النهائي" لاختبار كافة كلماتك!');
-      switchAssessmentTab('final');
-      return;
-    }
-
-    state.assessment = {
-      active: true,
-      mode: 'comprehensive',
-      words: shuffleArrayCopy(learnedWords),
-      currentIndex: 0,
-      correctCount: 0,
-      wrongCount: 0,
-      mistakes: [],
-      processing: false
-    };
-
-    if (el.assessmentActiveSection) el.assessmentActiveSection.style.display = 'block';
-    if (el.assessmentSummarySection) el.assessmentSummarySection.style.display = 'none';
-    if (el.reviewListSection) el.reviewListSection.style.display = 'none';
-
-    setupAssessmentUIForWriting();
-    renderAssessmentQuestion();
-  }
-
-  function startFinalAssessment() {
-    // التقييم النهائي: اختبار كتابة شامل على كل كلمات التطبيق
-    const allWords = state.vocabulary.slice();
-
-    if (!allWords.length) {
-      alert('لا توجد كلمات مضافة في التطبيق للاختبار.');
-      return;
-    }
-
-    state.assessment = {
-      active: true,
-      mode: 'final',
-      words: shuffleArrayCopy(allWords),
-      currentIndex: 0,
-      correctCount: 0,
-      wrongCount: 0,
-      mistakes: [],
-      processing: false
-    };
-
-    if (el.assessmentActiveSection) el.assessmentActiveSection.style.display = 'block';
-    if (el.assessmentSummarySection) el.assessmentSummarySection.style.display = 'none';
-    if (el.reviewListSection) el.reviewListSection.style.display = 'none';
-
-    setupAssessmentUIForWriting();
-    renderAssessmentQuestion();
-  }
-
-  function startReviewListAssessment(customWords = null) {
-    const wordsToTest = customWords || state.vocabulary.filter(w => state.reviewList.includes(w.id));
-
-    if (!wordsToTest.length) {
-      alert('لا توجد كلمات في قائمة المراجعة حالياً.');
-      return;
-    }
-
-    state.assessment = {
-      active: true,
-      mode: 'review',
-      words: shuffleArrayCopy(wordsToTest),
-      currentIndex: 0,
-      correctCount: 0,
-      wrongCount: 0,
-      mistakes: [],
-      processing: false
-    };
-
-    if (el.assessmentActiveSection) el.assessmentActiveSection.style.display = 'block';
-    if (el.assessmentSummarySection) el.assessmentSummarySection.style.display = 'none';
-    if (el.reviewListSection) el.reviewListSection.style.display = 'none';
-
-    setupAssessmentUIForWriting();
-    renderAssessmentQuestion();
-  }
-
-  function startMistakesReviewAssessment() {
-    if (!state.assessment.mistakes || !state.assessment.mistakes.length) return;
-    const mistakeIds = state.assessment.mistakes.map(m => m.id);
-    const words = state.vocabulary.filter(w => mistakeIds.includes(w.id));
-    startReviewListAssessment(words);
-  }
-
-  function setupAssessmentUIForWriting() {
-    if (el.assessmentProgressCard) el.assessmentProgressCard.style.display = 'flex';
-    if (el.writingInputWrapper) el.writingInputWrapper.style.display = 'flex';
-    if (el.guessInput) el.guessInput.style.display = 'block';
-    if (el.optionsGrid) el.optionsGrid.style.display = 'none';
-    if (el.voicePanel) el.voicePanel.style.display = 'none';
-    if (el.hintBtn) el.hintBtn.style.display = 'inline-flex';
-    if (el.checkBtn) el.checkBtn.style.display = 'inline-flex';
-  }
-
-  function renderAssessmentQuestion() {
-    if (!state.assessment.active) return;
-
-    if (state.assessment.currentIndex >= state.assessment.words.length) {
-      finishAssessment();
-      return;
-    }
-
-    const word = state.assessment.words[state.assessment.currentIndex];
-    state.assessment.processing = false;
-
-    const modeTitles = {
-      comprehensive: `🏆 تقييم شامل (${state.assessment.words.length} كلمة محفوظة)`,
-      final: `🎓 التقييم النهائي (${state.assessment.words.length} كلمة)`,
-      review: `📋 مراجعة وتثبيت الأخطاء (${state.assessment.words.length} كلمة)`
-    };
-
-    if (el.assessmentTypeBadge) {
-      el.assessmentTypeBadge.textContent = modeTitles[state.assessment.mode] || 'اختبار تقييم';
-    }
-
-    if (el.assessmentCounterText) {
-      el.assessmentCounterText.textContent = `السؤال ${state.assessment.currentIndex + 1} من ${state.assessment.words.length}`;
-    }
-
-    if (el.assessmentProgressBarFill) {
-      const pct = (state.assessment.currentIndex / state.assessment.words.length) * 100;
-      el.assessmentProgressBarFill.style.width = `${pct}%`;
-    }
-
-    if (el.testCardFront) el.testCardFront.textContent = getSourceWord(word);
-    if (el.testWordStatus) {
-      el.testWordStatus.textContent = getStatusLabel(word.status);
-      el.testWordStatus.style.display = 'block';
-    }
-    if (el.testPronounceBtn) {
-      el.testPronounceBtn.style.display = word.english && word.english !== '?' ? 'flex' : 'none';
-    }
-
-    if (el.guessInput) {
-      el.guessInput.value = '';
-      el.guessInput.className = '';
-      setTimeout(() => el.guessInput.focus(), 50);
-    }
-    if (el.testFeedback) {
-      el.testFeedback.textContent = '';
-      el.testFeedback.className = 'test-feedback';
-    }
-  }
-
-  function checkAssessmentWriting() {
-    if (!state.assessment.active || state.assessment.processing) return;
-
-    const word = state.assessment.words[state.assessment.currentIndex];
-    if (!word) return;
-
-    const input = normalizeString(el.guessInput.value);
-    if (!input) {
-      el.testFeedback.textContent = '⚠️ اكتب الكلمة أولًا قبل التأكيد.';
-      el.testFeedback.className = 'test-feedback';
-      return;
-    }
-
-    state.assessment.processing = true;
-    const targetWord = getTargetWord(word);
-    const correct = normalizeString(targetWord);
-    const isCorrect = input === correct;
-
-    if (isCorrect) {
-      state.assessment.correctCount += 1;
-      word.correctCount = (word.correctCount || 0) + 1;
-      word.status = 'learned';
-      word.interval = Math.max(1, (word.interval || 0) * 2);
-      word.lastReview = now();
-      word.due = now() + word.interval * 3600000;
-
-      if (state.reviewList.includes(word.id)) {
-        state.reviewList = state.reviewList.filter(id => id !== word.id);
-      }
-
-      el.guessInput.className = 'correct';
-      el.testFeedback.textContent = '✅ إجابة صحيحة! أحسنت!';
-      el.testFeedback.className = 'test-feedback correct';
-
-      saveState(true);
-      updateStats();
-      updateReviewBadges();
-
-      setTimeout(() => {
-        state.assessment.currentIndex += 1;
-        renderAssessmentQuestion();
-      }, 450);
-    } else {
-      state.assessment.wrongCount += 1;
-      word.wrongCount = (word.wrongCount || 0) + 1;
-      word.status = 'difficult';
-      word.interval = 0;
-      word.lastReview = now();
-      word.due = now();
-
-      if (!state.reviewList.includes(word.id)) {
-        state.reviewList.push(word.id);
-      }
-
-      state.assessment.mistakes.push({
-        id: word.id,
-        english: word.english,
-        arabic: word.arabic,
-        target: targetWord,
-        userTyped: input
-      });
-
-      el.guessInput.className = 'wrong';
-      el.testFeedback.textContent = `❌ الصحيح: ${targetWord} (تمت الإضافة لقائمة: راجع على الكلمات دول)`;
-      el.testFeedback.className = 'test-feedback wrong';
-
-      saveState(true);
-      updateStats();
-      updateReviewBadges();
-
-      setTimeout(() => {
-        state.assessment.currentIndex += 1;
-        renderAssessmentQuestion();
-      }, 1250);
-    }
-  }
-
-  function skipAssessmentQuestion() {
-    if (!state.assessment.active || state.assessment.processing) return;
-    const word = state.assessment.words[state.assessment.currentIndex];
-    if (!word) return;
-
-    state.assessment.processing = true;
-    state.assessment.wrongCount += 1;
-    word.wrongCount = (word.wrongCount || 0) + 1;
-    word.status = 'difficult';
-    word.interval = 0;
-
-    if (!state.reviewList.includes(word.id)) {
-      state.reviewList.push(word.id);
-    }
-
-    state.assessment.mistakes.push({
-      id: word.id,
-      english: word.english,
-      arabic: word.arabic,
-      target: getTargetWord(word),
-      userTyped: '(تم التخطي)'
-    });
-
-    el.testFeedback.textContent = `⏭️ تم التخطي. الصحيح: ${getTargetWord(word)} (أضيفت للمراجعة)`;
-    el.testFeedback.className = 'test-feedback wrong';
-
-    saveState(true);
-    updateStats();
-    updateReviewBadges();
-
-    setTimeout(() => {
-      state.assessment.currentIndex += 1;
-      renderAssessmentQuestion();
-    }, 1000);
-  }
-
-  function showAssessmentHint() {
-    if (!state.assessment.active) return;
-    const word = state.assessment.words[state.assessment.currentIndex];
-    if (!word) return;
-    const target = getTargetWord(word);
-    el.testFeedback.textContent = `💡 أول حرف: "${target.charAt(0)}..."`;
-    el.testFeedback.className = 'test-feedback';
-  }
-
-  function cancelAssessment() {
-    if (confirm('هل تريد إنهاء التقييم الحالي والعودة؟')) {
-      state.assessment.active = false;
-      initAssessmentTab('comprehensive');
-    }
-  }
-
-  function restartAssessment() {
-    if (state.assessment.mode === 'final') {
-      startFinalAssessment();
-    } else if (state.assessment.mode === 'review') {
-      startReviewListAssessment();
-    } else {
-      startComprehensiveAssessment();
-    }
-  }
-
-  function finishAssessment() {
-    state.assessment.active = false;
-    if (el.assessmentActiveSection) el.assessmentActiveSection.style.display = 'none';
-    if (el.reviewListSection) el.reviewListSection.style.display = 'none';
-    if (el.assessmentSummarySection) el.assessmentSummarySection.style.display = 'block';
-
-    const total = state.assessment.words.length;
-    const correct = state.assessment.correctCount;
-    const wrong = state.assessment.wrongCount;
-    const pct = Math.round((correct / Math.max(1, total)) * 100);
-
-    if (el.summaryTotalWords) el.summaryTotalWords.textContent = `${total}`;
-    if (el.summaryCorrectWords) el.summaryCorrectWords.textContent = `${correct}`;
-    if (el.summaryWrongWords) el.summaryWrongWords.textContent = `${wrong}`;
-    if (el.summaryPercentVal) el.summaryPercentVal.textContent = `${pct}%`;
-
-    if (pct >= 80) {
-      if (el.assessmentTrophyIcon) el.assessmentTrophyIcon.textContent = '🏆';
-      if (el.assessmentSummaryTitle) el.assessmentSummaryTitle.textContent = 'أداء متميز ورائع!';
-      if (el.assessmentSummarySubtitle) el.assessmentSummarySubtitle.textContent = `حققت نسبة إتقان ${pct}% في هذا التقييم. واصل التألق!`;
-      triggerConfetti();
-    } else {
-      if (el.assessmentTrophyIcon) el.assessmentTrophyIcon.textContent = '💪';
-      if (el.assessmentSummaryTitle) el.assessmentSummaryTitle.textContent = 'اكتمل التقييم! مجهود طيب';
-      if (el.assessmentSummarySubtitle) el.assessmentSummarySubtitle.textContent = `حققت ${pct}%. تم تسجيل الكلمات التي أخطأت فيها في قائمة المراجعة لتثبيتها.`;
-    }
-
-    if (state.assessment.mistakes && state.assessment.mistakes.length > 0) {
-      if (el.assessmentMistakesBox) el.assessmentMistakesBox.style.display = 'block';
-      if (el.assessmentMistakesList) {
-        el.assessmentMistakesList.innerHTML = state.assessment.mistakes.map(m => `
-          <div class="mistake-item-card">
-            <div class="mistake-item-info">
-              <strong>${escapeHtml(m.english)}</strong>
-              <span>${escapeHtml(m.arabic)}</span>
-            </div>
-            <button type="button" class="pronounce-btn" onclick="window.pronounceWord('${escapeHtml(m.english)}')" style="position:static; width:34px; height:34px; font-size:0.9rem;" title="استمع">🔊</button>
-          </div>
-        `).join('');
-      }
-    } else {
-      if (el.assessmentMistakesBox) el.assessmentMistakesBox.style.display = 'none';
-    }
-
-    saveState(true);
-    updateReviewBadges();
-  }
-
-  function renderReviewListView() {
-    state.assessment.active = false;
-    if (el.assessmentActiveSection) el.assessmentActiveSection.style.display = 'none';
-    if (el.assessmentSummarySection) el.assessmentSummarySection.style.display = 'none';
-    if (el.reviewListSection) el.reviewListSection.style.display = 'block';
-
-    const reviewWords = state.vocabulary.filter(w => state.reviewList.includes(w.id));
-    updateReviewBadges();
-
-    if (!reviewWords.length) {
-      if (el.startReviewFromListBtn) el.startReviewFromListBtn.disabled = true;
-      if (el.clearReviewListBtn) el.clearReviewListBtn.disabled = true;
-      if (el.reviewWordsContainer) {
-        el.reviewWordsContainer.innerHTML = `
-          <div class="review-empty-state">
-            <div class="review-empty-icon">🎉</div>
-            <h4>رائع! لا توجد كلمات تحتاج مراجعة</h4>
-            <p>قائمة المراجعة نظيفة تماماً. عند الخطأ في أي كلمة أثناء التقييم الشامل أو النهائي، ستُضاف هنا تلقائياً لتراجع عليها وتثبتها.</p>
-          </div>
-        `;
-      }
-    } else {
-      if (el.startReviewFromListBtn) el.startReviewFromListBtn.disabled = false;
-      if (el.clearReviewListBtn) el.clearReviewListBtn.disabled = false;
-      if (el.reviewWordsContainer) {
-        el.reviewWordsContainer.innerHTML = reviewWords.map(w => `
-          <div class="review-item-card" data-id="${escapeHtml(w.id)}">
-            <div class="review-item-info">
-              <strong>${escapeHtml(w.english)}</strong>
-              <span>${escapeHtml(w.arabic)}</span>
-            </div>
-            <div class="review-item-actions">
-              <button type="button" class="pronounce-btn" onclick="window.pronounceWord('${escapeHtml(w.english)}')" style="position:static; width:34px; height:34px; font-size:0.9rem;" title="استمع">🔊</button>
-              <button type="button" class="btn btn-outline btn-sm review-remove-btn" data-remove-id="${escapeHtml(w.id)}" style="padding:4px 10px; font-size:0.8rem; border-color:#fca5a5; color:#dc2626;" title="إزالة من قائمة المراجعة">❌ إزالة</button>
-            </div>
-          </div>
-        `).join('');
-
-        el.reviewWordsContainer.querySelectorAll('.review-remove-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const id = btn.dataset.removeId;
-            removeReviewWord(id);
-          });
-        });
-      }
-    }
-  }
-
-  function removeReviewWord(id) {
-    state.reviewList = state.reviewList.filter(wId => wId !== id);
-    saveState(true);
-    renderReviewListView();
-  }
-
-  function clearReviewList() {
-    if (!state.reviewList || !state.reviewList.length) return;
-    if (!confirm('هل أنت متأكد من رغبتك في مسح كافة الكلمات من قائمة المراجعة؟')) return;
-    state.reviewList = [];
-    saveState(true);
-    renderReviewListView();
-  }
-
   window.pronounceWord = function(text) {
     speak(text);
   };
 
   function checkWriting() {
-    if (state.assessment && state.assessment.active) {
-      checkAssessmentWriting();
-      return;
-    }
-
     if (state.testLocked) return;
 
     const word = getCurrentStudyWord();
@@ -2814,9 +2316,9 @@
 
   function computeLessonPoints(count, width = 360, stepY = 96) {
     const points = [];
-    const midX = Math.round(width / 2); // 180
-    const rightX = Math.round(width * 0.76); // 274
-    const leftX = Math.round(width * 0.24); // 86
+    const midX = Math.round(width / 2); // 180 (50%)
+    const rightX = Math.round(width * 0.69); // 248 (~69%)
+    const leftX = Math.round(width * 0.31); // 112 (~31%)
     const xPattern = [midX, rightX, midX, leftX];
     for (let i = 0; i < count; i++) {
       const x = xPattern[i % 4];
@@ -3021,6 +2523,7 @@
     markUserActivity();
     state.hafazni.activeLessonId = node.id;
     state.hafazni.activeLessonIndex = node.index;
+    state.hafazni.isCheckpoint = (node.type === 'checkpoint');
     initHafazniSession(node.ids);
   }
 
@@ -3057,6 +2560,10 @@
       alert('حدد كلمات أولًا من صفحة الكلمات.');
       return;
     }
+
+    const activeNode = computeLessons().find(n => n.id === state.hafazni.activeLessonId || (state.hafazni.activeLessonIndex !== null && n.index === state.hafazni.activeLessonIndex));
+    const isCheckpoint = Boolean(activeNode && activeNode.type === 'checkpoint');
+    state.hafazni.isCheckpoint = isCheckpoint;
 
     state.hafazni.active = true;
     if (hafazniSessionTimer) clearInterval(hafazniSessionTimer);
@@ -3125,6 +2632,38 @@
     if (!originalWord) {
       session.currentIndex++;
       renderHafazniQuestion();
+      return;
+    }
+
+    // إذا كانت الجلسة عبارة عن تقييم شامل (محطة تقييم على المسار):
+    // اختبار بسيط لمرة واحدة، لا تكرار ولا نسب إتقان ولا محاولات متكررة
+    if (session.isCheckpoint) {
+      el.hafazniProgressText.textContent = `السؤال ${session.currentIndex + 1} من ${words.length}`;
+      el.hafazniProgressBar.style.width = words.length ? `${((session.currentIndex) / words.length) * 100}%` : '0%';
+      el.hafazniQuestionTypeLabel.textContent = '🏆 تقييم شامل (اختبار لمرة واحدة)';
+      el.hafazniWordStats.style.display = 'none';
+
+      const source = getSourceWord(originalWord);
+      el.hafazniQuestion.textContent = source;
+
+      el.hafazniInput.style.display = 'block';
+      el.hafazniOptionsGrid.style.display = 'none';
+      el.hafazniInput.value = '';
+      el.hafazniInput.className = '';
+      el.hafazniInput.placeholder = '✍️ اكتب الترجمة...';
+      window.setTimeout(() => el.hafazniInput.focus(), 50);
+
+      el.hafazniFeedback.textContent = '';
+      el.hafazniFeedback.className = 'test-feedback';
+
+      if (originalWord.english && /[A-Za-z]/.test(originalWord.english)) {
+        speak(originalWord.english);
+      }
+
+      sessionWord.lastShown = now();
+      sessionWord.answered = false;
+      state.hafazni.processing = false;
+      updateHafazniOverview();
       return;
     }
 
@@ -3336,7 +2875,7 @@
       sessionWord.consecutiveWrong++;
       sessionWord.consecutiveCorrect = 0;
       session.summary.wrong++;
-      session.mistakes.push(sessionWord.id);
+      if (!session.mistakes.includes(sessionWord.id)) session.mistakes.push(sessionWord.id);
     }
 
     // تحديث الصعوبة والإتقان
@@ -3375,6 +2914,18 @@
   function advanceHafazniIndex(isCorrect, sessionWord) {
     const session = state.hafazni;
     if (!session.active) return;
+
+    // لو الجلسة تقييم شامل: مفيش إتقان ومفيش محاولات، هي مرة واحدة فقط لكل كلمة
+    if (session.isCheckpoint) {
+      session.currentIndex++;
+      if (session.currentIndex >= session.sessionWords.length) {
+        finishHafazniSession();
+      } else {
+        renderHafazniQuestion();
+        updateHafazniOverview();
+      }
+      return;
+    }
 
     // خوارزمية التكرار المتباعد البسيطة:
     // إذا كانت الإجابة صحيحة وتجاوز الإتقان 80%، ننقل الكلمة إلى قائمة "متقنة" ونقلل من ظهورها.
@@ -3499,6 +3050,48 @@
     el.summaryNeedsReview.textContent = needsReviewCount;
     el.summaryMistakes.textContent = wrong;
 
+    // عرض صندوق مراجعة الكلمات التي تم ارتكاب خطأ فيها
+    if (el.hafazniMistakesBox && el.hafazniMistakesList) {
+      if (state.hafazni.mistakes && state.hafazni.mistakes.length > 0) {
+        const mistakeWords = getWordsByIds(state.hafazni.mistakes);
+        el.hafazniMistakesList.innerHTML = '';
+        mistakeWords.forEach(w => {
+          const item = document.createElement('div');
+          item.className = 'hafazni-mistake-item';
+          item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem;';
+
+          const leftDiv = document.createElement('div');
+          leftDiv.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+
+          const spkBtn = document.createElement('button');
+          spkBtn.type = 'button';
+          spkBtn.className = 'action-btn';
+          spkBtn.title = 'نطق';
+          spkBtn.style.cssText = 'padding: 4px 8px; font-size: 0.85rem;';
+          spkBtn.textContent = '🔊';
+          spkBtn.addEventListener('click', () => speak(w.english));
+
+          const enSpan = document.createElement('strong');
+          enSpan.style.color = 'var(--text)';
+          enSpan.textContent = w.english;
+
+          leftDiv.appendChild(spkBtn);
+          leftDiv.appendChild(enSpan);
+
+          const arSpan = document.createElement('span');
+          arSpan.style.color = 'var(--text-secondary)';
+          arSpan.textContent = w.arabic;
+
+          item.appendChild(leftDiv);
+          item.appendChild(arSpan);
+          el.hafazniMistakesList.appendChild(item);
+        });
+        el.hafazniMistakesBox.style.display = 'block';
+      } else {
+        el.hafazniMistakesBox.style.display = 'none';
+      }
+    }
+
     // شاشة النتيجة تظهر دايمًا إجباريًا عند انتهاء أي درس أو جلسة، بدون استثناء
     if (el.hafazniSummary) el.hafazniSummary.style.display = 'block';
     if (el.hafazniTypeToggle) el.hafazniTypeToggle.style.display = 'flex';
@@ -3514,10 +3107,12 @@
       return;
     }
     // بدء جلسة جديدة بالأخطاء فقط
-    const mistakeIds = state.hafazni.mistakes;
+    const mistakeIds = [...state.hafazni.mistakes];
     // نعيد ضبط قائمة الأخطاء بعد بدء الجلسة
     state.hafazni.mistakes = [];
     state.hafazni.activeLessonId = null; // جلسة مراجعة أخطاء، مش درس من الخريطة
+    state.hafazni.activeLessonIndex = null;
+    state.hafazni.isCheckpoint = false;
     initHafazniSession(mistakeIds);
   }
 
@@ -4009,47 +3604,22 @@
 
     el.testPronounceBtn.addEventListener('click', event => {
       event.stopPropagation();
-      const word = state.assessment?.active ? state.assessment.words[state.assessment.currentIndex] : getCurrentStudyWord();
+      const word = getCurrentStudyWord();
       if (word) speak(word.english);
     });
 
     el.checkBtn.addEventListener('click', () => {
-      if (state.assessment?.active) {
-        checkAssessmentWriting();
-      } else {
-        checkWriting();
-      }
+      checkWriting();
     });
 
     el.hintBtn.addEventListener('click', () => {
-      if (state.assessment?.active) {
-        showAssessmentHint();
-      } else {
-        showHint();
-      }
+      showHint();
     });
 
     el.skipBtn.addEventListener('click', () => {
-      if (state.assessment?.active) {
-        skipAssessmentQuestion();
-      } else {
-        if (state.testLocked) return;
-        moveStudy(1);
-      }
+      if (state.testLocked) return;
+      moveStudy(1);
     });
-
-    el.exitAssessmentBtn?.addEventListener('click', cancelAssessment);
-    el.tabComprehensiveBtn?.addEventListener('click', () => switchAssessmentTab('comprehensive'));
-    el.tabFinalBtn?.addEventListener('click', () => switchAssessmentTab('final'));
-    el.tabPracticeBtn?.addEventListener('click', () => switchAssessmentTab('practice'));
-    el.tabReviewListBtn?.addEventListener('click', () => switchAssessmentTab('review'));
-
-    el.retryMistakesBtn?.addEventListener('click', startMistakesReviewAssessment);
-    el.restartAssessmentBtn?.addEventListener('click', restartAssessment);
-    el.goToReviewListBtn?.addEventListener('click', () => switchAssessmentTab('review'));
-    el.goToHomeFromTestBtn?.addEventListener('click', () => navigateTo('homePage'));
-    el.startReviewFromListBtn?.addEventListener('click', () => startReviewListAssessment());
-    el.clearReviewListBtn?.addEventListener('click', clearReviewList);
 
     el.markDifficultBtn.addEventListener('click', markCurrentDifficult);
     el.recordBtn.addEventListener('click', () => recognition ? stopRecognition() : startVoiceTest());
@@ -4362,21 +3932,38 @@
     el.hafazniSkipBtn.addEventListener('click', () => {
       if (state.hafazni.processing) return;
       if (!state.hafazni.active) return;
-      // نعد الكلمة كخطأ لتظهر مجددًا
       const session = state.hafazni;
       const sessionWord = session.sessionWords[session.currentIndex];
       if (sessionWord) {
         sessionWord.wrong++;
         session.summary.wrong++;
-        session.mistakes.push(sessionWord.id);
-        // نقلها للتكرار
-        const words = session.sessionWords;
-        const removed = words.splice(session.currentIndex, 1)[0];
-        const insertPos = Math.min(session.currentIndex + 1, words.length);
-        words.splice(insertPos, 0, removed);
-        // حفظ التقدم
+        if (!session.mistakes.includes(sessionWord.id)) session.mistakes.push(sessionWord.id);
+
+        const originalWord = state.vocabulary.find(w => w.id === sessionWord.id);
+        if (originalWord) {
+          originalWord.wrongCount++;
+          originalWord.status = 'difficult';
+          originalWord.interval = 0;
+          originalWord.lastReview = now();
+          originalWord.due = now();
+        }
+
         saveState(true);
         updateStats();
+
+        if (session.isCheckpoint) {
+          session.currentIndex++;
+          if (session.currentIndex >= session.sessionWords.length) {
+            finishHafazniSession();
+            return;
+          }
+        } else {
+          // نقلها للتكرار في الجلسة العادية
+          const words = session.sessionWords;
+          const removed = words.splice(session.currentIndex, 1)[0];
+          const insertPos = Math.min(session.currentIndex + 1, words.length);
+          words.splice(insertPos, 0, removed);
+        }
       }
       renderHafazniQuestion();
       updateHafazniOverview();
@@ -4449,6 +4036,16 @@
     el.startCurrentLessonDirectBtn?.addEventListener('click', () => {
       const idx = Number(el.startCurrentLessonDirectBtn.dataset.nodeIndex ?? el.startCurrentLessonDirectBtn.dataset.lessonIndex ?? 0);
       startLesson(idx);
+    });
+
+    el.jumpToCurrentLessonBtn?.addEventListener('click', () => {
+      if (!el.hafazniLessonPath) return;
+      const target = el.hafazniLessonPath.querySelector('.lesson-node.current-target')
+        || el.hafazniLessonPath.querySelector('.lesson-node.available')
+        || el.hafazniLessonPath.querySelector('.lesson-node');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     });
 
     el.helpSettingsBtn.addEventListener('click', () => openModal(el.helpModal));

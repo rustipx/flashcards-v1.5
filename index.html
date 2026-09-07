@@ -130,163 +130,41 @@
 
 <div class="page" id="testPage">
   <div class="header">
-    <div class="header-icon-badge">✍️ 🏆</div>
-    <h2>وضع التقييم والاختبار الذكي</h2>
-    <p class="subtitle">🎯 قيّم قوة حفظك بكتابة الكلمات أو راجع الأخطاء بسهولة</p>
+    <div class="header-icon-badge">✍️ 🔘 🎙️</div>
+    <h2>اختبار الكلمات</h2>
+    <p class="subtitle">🎯 اختبر حفظك بالكتابة أو الاختيارات أو النطق الصوتي</p>
   </div>
 
-  <!-- أزرار اختيار نوع التقييم والاختبار -->
-  <div class="assessment-mode-bar" id="assessmentModeBar">
-    <button type="button" class="assessment-tab-btn active" id="tabComprehensiveBtn" data-test-tab="comprehensive">
-      <span class="tab-icon">🏆</span>
-      <div class="tab-info">
-        <strong>تقييم شامل</strong>
-        <span class="tab-desc">الكلمات المحفوظة</span>
-      </div>
-    </button>
-    <button type="button" class="assessment-tab-btn" id="tabFinalBtn" data-test-tab="final">
-      <span class="tab-icon">🎓</span>
-      <div class="tab-info">
-        <strong>التقييم النهائي</strong>
-        <span class="tab-desc">كافة الكلمات</span>
-      </div>
-    </button>
-    <button type="button" class="assessment-tab-btn" id="tabPracticeBtn" data-test-tab="practice">
-      <span class="tab-icon">✍️</span>
-      <div class="tab-info">
-        <strong>تدريب حر</strong>
-        <span class="tab-desc">كتابة / خيارات / صوت</span>
-      </div>
-    </button>
-    <button type="button" class="assessment-tab-btn" id="tabReviewListBtn" data-test-tab="review">
-      <span class="tab-icon">📋</span>
-      <div class="tab-info">
-        <strong>راجع على الكلمات دول</strong>
-        <span class="tab-desc" id="reviewBadgeDesc">0 كلمة للمراجعة</span>
-      </div>
-    </button>
+  <div class="mode-toggle" id="testModeToggle">
+    <button id="typeWritingBtn" class="active" type="button">✍️ كتابة</button>
+    <button id="typeChoiceBtn" type="button">🔘 خيارات</button>
+    <button id="typeVoiceBtn" type="button">🎙️ نطق صوتي</button>
   </div>
 
-  <!-- 1. شاشة الاختبار / التقييم الجاري (كتابة إملائية وتدريب) -->
-  <div id="assessmentActiveSection" class="assessment-active-section">
-    <!-- شريط تقدم التقييم -->
-    <div class="assessment-progress-card" id="assessmentProgressCard">
-      <div class="assessment-progress-header">
-        <span class="assessment-current-badge" id="assessmentTypeBadge">🏆 تقييم شامل</span>
-        <span class="assessment-counter-text" id="assessmentCounterText">1 / 10</span>
-        <button type="button" class="exit-test-btn" id="exitAssessmentBtn" title="إنهاء التقييم والعودة">✕ إنهاء</button>
-      </div>
-      <div class="assessment-progress-bar-wrap">
-        <div class="assessment-progress-bar-fill" id="assessmentProgressBarFill" style="width: 0%;"></div>
-      </div>
-    </div>
-
-    <!-- بطاقة التبديل في التدريب الحر فقط -->
-    <div class="mode-toggle" id="testModeToggle" style="display:none;">
-      <button id="typeWritingBtn" class="active" type="button">✍️ كتابة</button>
-      <button id="typeChoiceBtn" type="button">🔘 خيارات</button>
-      <button id="typeVoiceBtn" type="button">🎙️ نطق صوتي</button>
-    </div>
-
-    <div class="card-wrapper">
-      <div class="flashcard test-flashcard" id="testFlashcard">
-        <div class="card-face" id="testCardFront">?</div>
-        <div class="word-status" id="testWordStatus">📝 جديدة</div>
-        <button class="pronounce-btn" id="testPronounceBtn" title="استمع للنطق" aria-label="نطق" type="button">🔊</button>
-      </div>
-    </div>
-
-    <div class="writing-input-wrapper" id="writingInputWrapper">
-      <input type="text" id="guessInput" placeholder="✍️ اكتب الكلمة الصحيحة هنا..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    </div>
-
-    <div class="options-grid" id="optionsGrid" style="display:none;"></div>
-
-    <div id="voicePanel" class="voice-panel" style="display:none;">
-      <button class="record-btn" id="recordBtn" type="button">🎙️ اضغط للتسجيل الصوتي</button>
-      <p class="voice-state" id="voiceState">🎤 سيتم الاستماع لنطقك باللغة المناسبة تلقائيًا.</p>
-      <div class="voice-result" id="voiceResult"></div>
-    </div>
-
-    <div class="test-feedback" id="testFeedback"></div>
-
-    <div class="control-group" id="assessmentControls">
-      <button class="ctrl-btn primary" id="checkBtn" type="button">✅ تأكيد وتحقق</button>
-      <button class="ctrl-btn" id="hintBtn" type="button">💡 تلميح</button>
-      <button class="ctrl-btn" id="skipBtn" type="button">⏭️ تجاوز</button>
-      <button class="ctrl-btn" id="markDifficultBtn" type="button">🔴 صعبة</button>
+  <div class="card-wrapper">
+    <div class="flashcard test-flashcard" id="testFlashcard">
+      <div class="card-face" id="testCardFront">?</div>
+      <div class="word-status" id="testWordStatus">📝 جديدة</div>
+      <button class="pronounce-btn" id="testPronounceBtn" title="استمع للنطق" aria-label="نطق" type="button">🔊</button>
     </div>
   </div>
 
-  <!-- 2. شاشة ملخص التقييم والنتائج (Assessment Summary) -->
-  <div id="assessmentSummarySection" class="card assessment-summary-card" style="display:none;">
-    <div class="summary-header">
-      <div class="summary-trophy" id="assessmentTrophyIcon">🏆</div>
-      <h3 id="assessmentSummaryTitle">اكتمل التقييم بنجاح!</h3>
-      <p id="assessmentSummarySubtitle" class="summary-subtitle">إليك ملخص نتيجتك ودقة إجاباتك:</p>
-    </div>
+  <input type="text" id="guessInput" placeholder="اكتب الإجابة باللغة المناسبة..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <div class="options-grid" id="optionsGrid" style="display:none;"></div>
 
-    <div class="assessment-score-grid">
-      <div class="score-stat-box total">
-        <span class="score-num" id="summaryTotalWords">0</span>
-        <span class="score-label">إجمالي الكلمات</span>
-      </div>
-      <div class="score-stat-box correct">
-        <span class="score-num" id="summaryCorrectWords">0</span>
-        <span class="score-label">إجابات صحيحة</span>
-      </div>
-      <div class="score-stat-box wrong">
-        <span class="score-num" id="summaryWrongWords">0</span>
-        <span class="score-label">أخطاء للمراجعة</span>
-      </div>
-      <div class="score-stat-box percent">
-        <span class="score-num" id="summaryPercentVal">0%</span>
-        <span class="score-label">نسبة الإتقان</span>
-      </div>
-    </div>
-
-    <!-- قسم: راجع على الكلمات دول (الكلمات الخاطئة في الجلسة) -->
-    <div id="assessmentMistakesBox" class="assessment-mistakes-container" style="display:none;">
-      <div class="mistakes-header">
-        <span class="mistakes-icon">📝</span>
-        <div>
-          <h4>راجع على الكلمات دول</h4>
-          <span>تم تسجيل هذه الكلمات في قائمة المراجعة لتثبيتها وإتقان كتابتها</span>
-        </div>
-      </div>
-      <div class="mistakes-word-list" id="assessmentMistakesList"></div>
-      <button type="button" class="ctrl-btn primary retry-mistakes-btn" id="retryMistakesBtn">
-        🔁 بدء اختبار وتثبيت كلمات المراجعة الآن
-      </button>
-    </div>
-
-    <div class="summary-actions-row">
-      <button type="button" class="ctrl-btn primary" id="restartAssessmentBtn">🔄 إعادة التقييم</button>
-      <button type="button" class="ctrl-btn" id="goToReviewListBtn">📋 قائمة المراجعة</button>
-      <button type="button" class="ctrl-btn" id="goToHomeFromTestBtn">🏠 الرئيسية</button>
-    </div>
+  <div id="voicePanel" class="voice-panel" style="display:none;">
+    <button class="record-btn" id="recordBtn" type="button">🎙️ اضغط للتسجيل الصوتي</button>
+    <p class="voice-state" id="voiceState">🎤 سيتم الاستماع لنطقك باللغة المناسبة تلقائيًا.</p>
+    <div class="voice-result" id="voiceResult"></div>
   </div>
 
-  <!-- 3. شاشة قائمة المراجعة الدائمة (قائمة: راجع على الكلمات دول) -->
-  <div id="reviewListSection" class="card review-list-card" style="display:none;">
-    <div class="review-header">
-      <div class="review-header-icon">📋</div>
-      <div>
-        <h3>قائمة: راجع على الكلمات دول</h3>
-        <p class="review-header-desc">الكلمات التي أخطأت فيها في الاختبارات أو وضعتها للمراجعة لتثبيتها</p>
-      </div>
-    </div>
+  <div class="test-feedback" id="testFeedback"></div>
 
-    <div class="review-actions-bar">
-      <button type="button" class="ctrl-btn primary" id="startReviewFromListBtn">
-        ✍️ بدء اختبار كتابة لكلمات المراجعة (<span id="reviewListActionCount">0</span>)
-      </button>
-      <button type="button" class="ctrl-btn danger-btn" id="clearReviewListBtn">
-        🗑️ مسح القائمة
-      </button>
-    </div>
-
-    <div id="reviewWordsContainer" class="review-words-container"></div>
+  <div class="control-group">
+    <button class="ctrl-btn primary" id="checkBtn" type="button">✅ تحقق</button>
+    <button class="ctrl-btn" id="hintBtn" type="button">💡 تلميح</button>
+    <button class="ctrl-btn" id="skipBtn" type="button">⏭️ تجاوز</button>
+    <button class="ctrl-btn" id="markDifficultBtn" type="button">🔴 صعبة</button>
   </div>
 </div>
 
@@ -393,7 +271,10 @@
       <div class="hafazni-map-progress-box" id="hafazniMapProgressBox">
         <div class="map-progress-labels">
           <span id="hafazniMapProgressTitle">🗺️ مسار الدروس والتقييم</span>
-          <span id="hafazniMapProgressCount">0 / 0 مكتمل</span>
+          <div class="map-progress-controls" style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="jump-to-current-btn" id="jumpToCurrentLessonBtn" title="انتقل إلى الدرس الحالي على الخريطة">📍 الحالي</button>
+            <span id="hafazniMapProgressCount">0 / 0 مكتمل</span>
+          </div>
         </div>
         <div class="map-progress-bar-bg">
           <div class="map-progress-bar-fill" id="hafazniMapProgressBarFill"></div>
@@ -481,6 +362,19 @@
         <p><strong>📕 تحتاج مراجعة:</strong> <span id="summaryNeedsReview">0</span></p>
         <p><strong>🔴 الأخطاء:</strong> <span id="summaryMistakes">0</span></p>
       </div>
+
+      <!-- قسم مراجعة الأخطاء في التقييم الشامل -->
+      <div id="hafazniMistakesBox" class="hafazni-mistakes-box" style="display:none; margin: 14px 0; padding: 12px; background: var(--stat-bg); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 1.2rem;">📋</span>
+          <div>
+            <strong style="font-size: 0.96rem; color: var(--text);">راجع على الكلمات دول</strong>
+            <div style="font-size: 0.78rem; color: var(--text-secondary);">هذه الكلمات أخطأت فيها في التقييم، اضغط على زر المراجعة لتثبيتها</div>
+          </div>
+        </div>
+        <div class="hafazni-mistakes-list" id="hafazniMistakesList" style="display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+
       <button class="ctrl-btn primary wide-btn" id="nextLessonBtn" type="button" style="display:none;">➡️ الدرس / التقييم التالي</button>
       <button class="ctrl-btn primary wide-btn" id="summaryReviewBtn" type="button">🔁 راجع الأخطاء</button>
       <button class="ctrl-btn wide-btn" id="summaryCloseBtn" type="button">✔️ إغلاق والعودة للمسار</button>
