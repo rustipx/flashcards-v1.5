@@ -416,6 +416,7 @@
   <div class="selection-bar">
     <button class="ctrl-btn" id="selectAllBtn" type="button">☑️ تحديد الكل</button>
     <button class="ctrl-btn" id="clearSelectionBtn" type="button">⬜ إلغاء التحديد</button>
+    <button class="ctrl-btn danger-btn" id="deleteSelectedBtn" type="button" title="حذف الكلمات المحددة فقط">🗑️ حذف المحدد</button>
     <button class="ctrl-btn primary" id="sendToHafazniBtn" type="button">🧠 حفظني <span id="selectedWordsCount" class="selected-count-badge">0</span></button>
   </div>
 
@@ -601,6 +602,7 @@
 
       <div class="edit-modal-actions">
         <button type="submit" class="ctrl-btn primary" id="saveEditWordBtn">💾 حفظ التعديلات</button>
+        <button type="button" class="ctrl-btn danger-btn" id="deleteWordFromModalBtn">🗑️ حذف الكلمة</button>
         <button type="button" class="ctrl-btn" id="cancelEditWordBtn">إلغاء</button>
       </div>
     </form>
@@ -882,6 +884,31 @@
     </div>
   </div>
 </div>
+
+<!-- نافذة تأكيد الإجراءات المخصصة والآمنة (Custom Confirmation Modal) -->
+<div id="confirmActionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+  <div class="modal-content confirm-modal-content">
+    <button class="close-modal" id="closeConfirmModal" aria-label="إغلاق">×</button>
+    <div class="confirm-modal-header">
+      <div class="confirm-modal-icon" id="confirmModalIcon">🗑️</div>
+      <div>
+        <h3 id="confirmModalTitle" style="margin:0; font-size:1.25rem; font-weight:800;">تأكيد الإجراء</h3>
+        <span class="confirm-modal-subtitle" id="confirmModalSubtitle">يرجى التأكيد للمتابعة</span>
+      </div>
+    </div>
+    <div class="confirm-modal-body">
+      <p id="confirmModalMessage" class="confirm-modal-message"></p>
+      <div id="confirmModalDetails" class="confirm-modal-details" style="display:none;"></div>
+    </div>
+    <div class="confirm-modal-actions">
+      <button type="button" class="ctrl-btn danger-btn" id="confirmModalOkBtn">تأكيد</button>
+      <button type="button" class="ctrl-btn" id="confirmModalCancelBtn">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- إشعار النظام الموحد الفوري (App Toast Notification) -->
+<div id="appToast" class="app-toast" role="alert" aria-live="assertive"></div>
 
 <script src="./script.js" defer></script>
 </body>

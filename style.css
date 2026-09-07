@@ -1104,12 +1104,14 @@ body.dark .settings-hint, body.dark .lessons-hint {
   width: 100%;
   max-width: 360px;
   margin: 16px auto 30px;
-  padding: 26px 4px 34px;
+  padding: 26px 8px 34px;
   min-height: 200px;
-  overflow-x: clip;
+  overflow-x: hidden;
+  overflow-y: visible;
   box-sizing: border-box;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 .lesson-map-svg {
@@ -1129,6 +1131,7 @@ body.dark .settings-hint, body.dark .lessons-hint {
   min-height: 200px;
   z-index: 2;
   touch-action: pan-y;
+  box-sizing: border-box;
 }
 
 /* زر الانتقال السلس للدرس الحالي على الخريطة */
@@ -3474,8 +3477,9 @@ body.dark .share-copy-toast {
 
   /* تحسينات تخطيط حفظني ومسار الدروس المتعرج للشاشات الصغيرة */
   .hafazni-lessons-card {
-    padding: 14px 10px;
-    overflow-x: clip;
+    padding: 14px 8px;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
 
   .hafazni-map-progress-box {
@@ -3490,38 +3494,49 @@ body.dark .share-copy-toast {
   .lesson-map-winding-wrapper {
     max-width: 100%;
     margin: 12px auto 22px;
-    padding: 22px 2px 30px;
-    overflow-x: clip;
+    padding: 22px 6px 30px;
+    overflow-x: hidden;
+    overflow-y: visible;
+    box-sizing: border-box;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
   }
 
   .lesson-node {
-    width: 50px;
-    height: 50px;
-    font-size: 1.05rem;
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
     border-width: 3px;
+    touch-action: pan-y;
   }
 
   .lesson-node span.node-num-icon {
-    font-size: 1.05rem;
+    font-size: 1rem;
   }
 
   .lesson-node.checkpoint {
-    width: 58px;
-    height: 58px;
-    font-size: 1.2rem;
+    width: 56px;
+    height: 56px;
+    font-size: 1.15rem;
     border-width: 3.5px;
   }
 
   .lesson-node-label {
-    font-size: 0.68rem;
-    padding: 2px 6px;
-    max-width: 105px;
+    font-size: 0.66rem;
+    padding: 2px 5px;
+    max-width: 92px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
   }
 
   .lesson-floating-tag {
-    font-size: 0.64rem;
-    padding: 2px 7px;
+    font-size: 0.62rem;
+    padding: 2px 6px;
     top: -22px;
+    white-space: nowrap;
+    pointer-events: none;
   }
 
   .today-words-header {
@@ -3563,7 +3578,9 @@ body.dark .share-copy-toast {
 
   /* شاشات الهواتف الضيقة جداً (< 400px) */
   .hafazni-lessons-card {
-    padding: 12px 6px;
+    padding: 12px 4px;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
 
   .hafazni-type-toggle {
@@ -3579,37 +3596,48 @@ body.dark .share-copy-toast {
   }
 
   .lesson-map-winding-wrapper {
-    padding: 20px 0 28px;
+    padding: 20px 4px 28px;
+    overflow-x: hidden;
+    overflow-y: visible;
+    box-sizing: border-box;
+    touch-action: pan-y;
   }
 
   .lesson-node {
-    width: 45px;
-    height: 45px;
-    font-size: 0.95rem;
+    width: 44px;
+    height: 44px;
+    font-size: 0.92rem;
     border-width: 2.5px;
+    touch-action: pan-y;
   }
 
   .lesson-node span.node-num-icon {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
   }
 
   .lesson-node.checkpoint {
-    width: 52px;
-    height: 52px;
-    font-size: 1.1rem;
+    width: 50px;
+    height: 50px;
+    font-size: 1.05rem;
     border-width: 3px;
   }
 
   .lesson-node-label {
     font-size: 0.62rem;
-    padding: 1px 5px;
-    max-width: 88px;
+    padding: 1px 4px;
+    max-width: 82px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
   }
 
   .lesson-floating-tag {
     font-size: 0.58rem;
     padding: 1px 5px;
     top: -19px;
+    white-space: nowrap;
+    pointer-events: none;
   }
 
   .quick-stat-chip {
@@ -4064,6 +4092,153 @@ body.dark .github-btn:hover {
   font-size: 0.95rem;
   font-weight: 700;
   border-radius: var(--radius);
+}
+
+/* نافذة تأكيد الإجراءات المخصصة */
+.confirm-modal-content {
+  max-width: 440px;
+  padding: 24px 20px;
+  border-radius: var(--radius);
+  animation: modalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.confirm-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.confirm-modal-icon {
+  font-size: 2rem;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(239, 68, 68, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.confirm-modal-icon.warning {
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.confirm-modal-icon.primary {
+  background: var(--primary-light);
+}
+
+.confirm-modal-subtitle {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.confirm-modal-body {
+  margin-bottom: 20px;
+}
+
+.confirm-modal-message {
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.6;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.confirm-modal-details {
+  background: var(--stat-bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-modal-actions button {
+  min-width: 110px;
+  padding: 10px 18px;
+}
+
+/* نظام التوست الشامل للتنبيهات الفورية (App Toast Notification) */
+.app-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(30px);
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  border-radius: var(--radius-pill);
+  padding: 10px 22px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  z-index: 10000;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  max-width: 90vw;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-toast.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-toast.success {
+  border-color: #22c55e;
+  color: #15803d;
+  background: #f0fdf4;
+}
+
+body.dark .app-toast.success {
+  background: #052e16;
+  border-color: #22c55e;
+  color: #86efac;
+}
+
+.app-toast.error {
+  border-color: #ef4444;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+body.dark .app-toast.error {
+  background: #450a0a;
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+.app-toast.warning {
+  border-color: #f59e0b;
+  color: #b45309;
+  background: #fffbeb;
+}
+
+body.dark .app-toast.warning {
+  background: #451a03;
+  border-color: #f59e0b;
+  color: #fde68a;
 }
 
 /* Printable PDF View */

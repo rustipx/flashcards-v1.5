@@ -110,7 +110,7 @@
       'darkToggleBtn','helpSettingsBtn','helpModal','closeHelpModal',
       'updateModal','closeUpdateModal','viewFeaturesBtn','wordList','searchInput','newEnglish','newArabic','newCategory',
       'categoryFilterBar','addWordBtn','importTextBtn','textImportInput','exportBackupBtn','importBackupBtn','backupInput',
-      'selectAllBtn','clearSelectionBtn','sendToHafazniBtn','selectedWordsCount','downloadWordsBtn',
+      'selectAllBtn','clearSelectionBtn','deleteSelectedBtn','sendToHafazniBtn','selectedWordsCount','downloadWordsBtn',
       'resetProgressBtn','resetBtn','feedbackForm','feedbackSuccess','feedbackError','hafazniSelectedCount',
       'hafazniRemainingCount','startHafazniBtn','reviewMistakesBtn','hafazniSession','hafazniProgressText',
       'hafazniProgressBar','hafazniQuestion','hafazniSpeakBtn','hafazniInput','hafazniFeedback',
@@ -140,6 +140,7 @@
       // عناصر نافذة تعديل الكلمة والتصنيف والحالة:
       'editWordModal','closeEditWordModal','editWordForm','editWordId','editEnglishInput',
       'editArabicInput','editCategoryInput','quickCategorySuggestions','saveEditWordBtn','cancelEditWordBtn',
+      'deleteWordFromModalBtn',
       'editStatusPills','editStatusInput',
       // عناصر نافذة مشاركة الكلمة:
       'wotdShareBtn','shareWordModal','closeShareWordModal','shareWordModalTitle','sharePreviewEnglish',
@@ -152,7 +153,11 @@
       'hafazniMistakesBox','hafazniMistakesList',
       // عناصر فريق التطوير (Team rustipx):
       'homeAboutUsBtn','settingsAboutUsBtn','aboutUsModal','closeAboutUsModal',
-      'copyRepoUrlBtn','repoUrlText','repoCopyToast'
+      'copyRepoUrlBtn','repoUrlText','repoCopyToast',
+      // عناصر نافذة التأكيد المخصصة والتوست (v1.5.3):
+      'confirmActionModal','closeConfirmModal','confirmModalIcon','confirmModalTitle',
+      'confirmModalSubtitle','confirmModalMessage','confirmModalDetails',
+      'confirmModalOkBtn','confirmModalCancelBtn','appToast'
     ].forEach(id => el[id] = $(id));
   }
 
@@ -454,8 +459,7 @@
 
   function getWordOfTheDay(forceNew = false) {
     if (!state.vocabulary || !state.vocabulary.length) {
-      state.vocabulary = normalizeVocabulary(STARTER_VOCABULARY);
-      saveState(true);
+      return null;
     }
     const today = getLocalDateStr();
 
@@ -542,7 +546,7 @@
   function openShareWordModal(word) {
     if (!word) word = getWordOfTheDay();
     if (!word) {
-      alert('لا توجد كلمة محددة للمشاركة.');
+      showToast('⚠️ لا توجد كلمة محددة للمشاركة.', 'warning');
       return;
     }
     activeShareWord = word;
@@ -960,7 +964,7 @@
     const word = getCurrentStudyWord();
 
     if (!word) {
-      alert('لا توجد كلمات للاختبار.');
+      showToast('⚠️ لا توجد كلمات متاحة للاختبار حالياً.', 'warning');
       return;
     }
 
@@ -1315,11 +1319,11 @@
 
   function setStudyFilter(filter) {
     if (filter === 'difficult' && !state.vocabulary.some(w => w.status === 'difficult')) {
-      alert('لا توجد كلمات صعبة.');
+      showToast('⚠️ لا توجد كلمات محددة كـ "صعبة" حالياً.', 'warning');
       return;
     }
     if (filter === 'due' && !state.vocabulary.some(w => !w.due || w.due <= now())) {
-      alert('لا توجد كلمات مستحقة للمراجعة الآن.');
+      showToast('🎉 رائع! لا توجد كلمات مستحقة للمراجعة الآن.', 'success');
       return;
     }
     state.studyFilter = state.studyFilter === filter ? 'all' : filter;
@@ -1431,12 +1435,21 @@
       const text = await readFileText(file);
       const incoming = parseFile(text);
       if (!incoming.length) {
-        alert('لم أجد كلمات قابلة للقراءة في الملف.');
+        showToast('⚠️ لم يتم العثور على كلمات قابلة للقراءة في الملف.', 'warning');
         return;
       }
 
       if (state.vocabulary.length) {
-        const add = confirm(`تم العثور على ${incoming.length} كلمة. اضغط موافق لإضافتها للكلمات الحالية، أو إلغاء لاستبدال القائمة.`);
+        const add = await showConfirmDialog({
+          title: '📥 استيراد مفردات جديدة',
+          subtitle: `تم العثور على ${incoming.length} كلمة في الملف`,
+          message: `هل ترغب في دمج الكلمات الجديدة مع بنك الكلمات الحالي أم استبدال القائمة بالكامل؟`,
+          details: 'اختر "إضافة ودمج" للإبقاء على كلماتك الحالية وإضافة الجديد إليها، أو "استبدال القائمة" لبدء قائمة جديدة تماماً بكلمات الملف فقط.',
+          okText: '➕ إضافة ودمج',
+          cancelText: '🔄 استبدال القائمة',
+          isDanger: false,
+          icon: '📥'
+        });
         if (add) {
           const existingPairs = new Set(state.vocabulary.map(w => normalizeString(w.english) + '|' + normalizeString(w.arabic)));
           for (const word of incoming) {
@@ -1461,11 +1474,11 @@
       if (el.searchInput) el.searchInput.value = '';
       saveState(true);
       updateAllViews();
-      alert(`✅ تم تحميل ${incoming.length} كلمة بنجاح.`);
+      showToast(`✅ تم استيراد ${incoming.length} كلمة بنجاح.`, 'success');
       navigateTo('studyPage');
     } catch (error) {
       console.error(error);
-      alert('❌ تعذر قراءة الملف. تأكد أنه TXT أو CSV نصي سليم.');
+      showToast('❌ تعذر قراءة الملف. تأكد أنه ملف TXT أو CSV نصي سليم.', 'error');
     }
   }
 
@@ -1475,7 +1488,7 @@
     const category = (el.newCategory?.value || '').trim() || 'عام';
 
     if (!english || !arabic) {
-      alert('اكتب الكلمة الإنجليزية والترجمة معًا.');
+      showToast('⚠️ يرجى كتابة الكلمة بالإنجليزية وترجمتها بالعربية معاً.', 'warning');
       return;
     }
 
@@ -1484,7 +1497,7 @@
       normalizeString(w.arabic) === normalizeString(arabic)
     );
     if (duplicate) {
-      alert('⚠️ هذه الكلمة موجودة بالفعل.');
+      showToast('⚠️ هذه الكلمة وترجمتها موجودة بالفعل في بنك المفردات.', 'warning');
       return;
     }
 
@@ -1494,6 +1507,7 @@
     if (el.newCategory) el.newCategory.value = '';
     saveState(true);
     updateAllViews();
+    showToast(`✅ تم إضافة "${english}" بنجاح`, 'success');
     el.newEnglish.focus();
   }
 
@@ -1529,18 +1543,99 @@
     setWordStatus(word, nextStatus);
   }
 
-  function deleteWord(wordOrId) {
-    const idx = typeof wordOrId === 'number' ? wordOrId : state.vocabulary.findIndex(w => w.id === wordOrId || w === wordOrId);
+  async function deleteWord(wordOrId) {
+    let idx = -1;
+    if (typeof wordOrId === 'number') {
+      idx = wordOrId >= 0 && wordOrId < state.vocabulary.length ? wordOrId : -1;
+    } else if (typeof wordOrId === 'object' && wordOrId !== null) {
+      idx = state.vocabulary.findIndex(w => w.id === wordOrId.id || w === wordOrId);
+    } else {
+      idx = state.vocabulary.findIndex(w => w.id === String(wordOrId));
+    }
     if (idx < 0) return;
     const word = state.vocabulary[idx];
     if (!word) return;
-    if (!confirm(`حذف "${word.english}"؟`)) return;
+
+    const confirmed = await showConfirmDialog({
+      title: '🗑️ حذف كلمة من القائمة',
+      subtitle: 'حذف مفردة محددة من بنك الكلمات',
+      message: `هل أنت متأكد من رغبتك في حذف الكلمة نهائياً من بنك المفردات؟`,
+      details: `${word.english}  ←  ${word.arabic} (التصنيف: ${word.category || 'عام'})`,
+      okText: '🗑️ حذف الكلمة',
+      cancelText: 'إلغاء',
+      isDanger: true,
+      icon: '🗑️'
+    });
+    if (!confirmed) return;
 
     state.vocabulary.splice(idx, 1);
     state.selectedIds = state.vocabulary.filter(w => w.selected).map(w => w.id);
     state.currentIndex = Math.min(state.currentIndex, Math.max(0, getStudyList().length - 1));
     saveState(true);
     updateAllViews();
+    showToast(`✅ تم حذف الكلمة "${word.english}" بنجاح`, 'success');
+  }
+
+  async function deleteSelectedWords() {
+    const selected = state.vocabulary.filter(w => w.selected);
+    if (!selected.length) {
+      showToast('⚠️ حدد كلمة واحدة على الأقل أولاً عبر المربعات (☑️) لحذفها.', 'warning');
+      return;
+    }
+
+    const count = selected.length;
+    const confirmed = await showConfirmDialog({
+      title: '🗑️ حذف الكلمات المحددة',
+      subtitle: `حذف ${count} كلمة تم اختيارها`,
+      message: `هل أنت متأكد من رغبتك في حذف ${count} كلمة محددة نهائياً من بنك المفردات؟`,
+      details: `سيتم إزالة جميع الكلمات المحددة حالياً من القائمة وتحديث مسارات التعلم التلقائية.`,
+      okText: `🗑️ نعم، احذف (${count}) كلمات`,
+      cancelText: 'إلغاء',
+      isDanger: true,
+      icon: '🗑️'
+    });
+    if (!confirmed) return;
+
+    const selectedIdSet = new Set(selected.map(w => w.id));
+    state.vocabulary = state.vocabulary.filter(w => !selectedIdSet.has(w.id));
+    state.selectedIds = [];
+    state.currentIndex = Math.min(state.currentIndex, Math.max(0, getStudyList().length - 1));
+    saveState(true);
+    updateAllViews();
+    showToast(`✅ تم حذف ${count} كلمة محددة بنجاح`, 'success');
+  }
+
+  function restoreDefaultWords() {
+    if (state.vocabulary.length) {
+      showConfirmDialog({
+        title: '✨ استعادة الكلمات المبدئية',
+        subtitle: 'إضافة الكلمات النموذجية التوضيحية',
+        message: 'هل تريد إضافة الكلمات المبدئية (20 كلمة نموذجية) إلى بنك مفرداتك الحالي؟',
+        details: 'سيتم دمج الكلمات النموذجية دون تكرار الكلمات الموجودة مسبقاً لديك.',
+        okText: '✨ نعم، استعادة الكلمات',
+        cancelText: 'إلغاء',
+        isDanger: false,
+        icon: '📚'
+      }).then(confirmed => {
+        if (!confirmed) return;
+        const existingSet = new Set(state.vocabulary.map(w => normalizeString(w.english)));
+        const toAdd = STARTER_VOCABULARY.filter(w => !existingSet.has(normalizeString(w.english)));
+        if (!toAdd.length) {
+          showToast('⚠️ كل الكلمات المبدئية موجودة لديك بالفعل في القائمة.', 'warning');
+          return;
+        }
+        state.vocabulary.push(...normalizeVocabulary(toAdd));
+        saveState(true);
+        updateAllViews();
+        showToast(`✅ تم إضافة ${toAdd.length} كلمة نموذجية بنجاح.`, 'success');
+      });
+      return;
+    }
+
+    state.vocabulary = normalizeVocabulary(STARTER_VOCABULARY);
+    saveState(true);
+    updateAllViews();
+    showToast('✅ تم استعادة الكلمات المبدئية (20 كلمة) بنجاح.', 'success');
   }
 
   function getUniqueCategories() {
@@ -1627,7 +1722,7 @@
     const newStatus = el.editStatusInput?.value || word.status || 'new';
 
     if (!newEnglish || !newArabic) {
-      alert('يرجى ملء الكلمة بالإنجليزية والترجمة بالعربية.');
+      showToast('⚠️ يرجى ملء الكلمة بالإنجليزية والترجمة بالعربية.', 'warning');
       return;
     }
 
@@ -1649,6 +1744,7 @@
     }
 
     closeEditWordModal();
+    showToast(`✅ تم حفظ تعديلات "${word.english}" بنجاح`, 'success');
   }
 
   function renderCategoryFilterBar() {
@@ -1715,7 +1811,20 @@
       });
 
     if (!items.length) {
-      el.wordList.innerHTML = '<div class="empty-state">لا توجد كلمات مطابقة.</div>';
+      if (!state.vocabulary.length) {
+        el.wordList.innerHTML = `
+          <div class="empty-state" style="padding: 36px 16px; text-align: center;">
+            <div style="font-size: 2.8rem; margin-bottom: 10px;">📂</div>
+            <h4 style="margin: 0 0 8px; font-weight: 800; font-size: 1.15rem;">بنك المفردات فارغ حالياً</h4>
+            <p style="margin: 0 0 18px; font-size: 0.9rem; color: var(--text-secondary); max-width: 440px; margin-inline: auto; line-height: 1.6;">تم مسح أو تفريغ جميع الكلمات. يمكنك إضافة كلمات جديدة من النموذج بالأعلى، أو استيراد ملف، أو استعادة الكلمات النموذجية في أي وقت.</p>
+            <button type="button" class="ctrl-btn primary" id="restoreDefaultWordsBtn" style="margin: 0 auto; padding: 10px 20px;">✨ استعادة الكلمات المبدئية (20 كلمة)</button>
+          </div>
+        `;
+        const restoreBtn = $('restoreDefaultWordsBtn');
+        if (restoreBtn) restoreBtn.addEventListener('click', restoreDefaultWords);
+      } else {
+        el.wordList.innerHTML = '<div class="empty-state">لا توجد كلمات مطابقة للبحث أو التصنيف المحدد.</div>';
+      }
       updateSelectionUI();
       return;
     }
@@ -1797,7 +1906,10 @@
       status.type = 'button';
       status.className = 'status-btn ' + word.status;
       status.textContent = getStatusLabel(word.status);
-      status.addEventListener('click', () => cycleStatus(index));
+      status.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cycleStatus(word.id);
+      });
 
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
@@ -1824,7 +1936,10 @@
       del.className = 'delete-btn';
       del.textContent = '🗑️';
       del.title = 'حذف الكلمة';
-      del.addEventListener('click', () => deleteWord(index));
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteWord(word.id);
+      });
 
       actions.append(status, editBtn, shareBtn, del);
       item.append(mainRow, actions);
@@ -1842,9 +1957,13 @@
   function updateSelectionUI() {
     syncSelectedIds();
     const count = state.selectedIds.length;
-    el.selectedWordsCount.textContent = count;
-    el.hafazniSelectedCount.textContent = count;
-    el.sendToHafazniBtn.disabled = count === 0;
+    if (el.selectedWordsCount) el.selectedWordsCount.textContent = count;
+    if (el.hafazniSelectedCount) el.hafazniSelectedCount.textContent = count;
+    if (el.sendToHafazniBtn) el.sendToHafazniBtn.disabled = count === 0;
+    if (el.deleteSelectedBtn) {
+      el.deleteSelectedBtn.disabled = count === 0;
+      el.deleteSelectedBtn.style.opacity = count === 0 ? '0.5' : '1';
+    }
   }
 
   function selectAll() {
@@ -1886,7 +2005,7 @@
   function goToHafazni() {
     updateSelectionUI();
     if (!state.selectedIds.length) {
-      alert('حدد كلمة واحدة على الأقل أولًا.');
+      showToast('⚠️ حدد كلمة واحدة على الأقل أولاً عبر المربعات (☑️).', 'warning');
       return;
     }
     state.hafazniTab = 'custom';
@@ -1941,7 +2060,7 @@
 
   async function requestNotificationPermission() {
     if (!isNotificationSupported()) {
-      alert('عذرًا، متصفحك لا يدعم إشعارات الويب.');
+      showToast('⚠️ متصفحك الحالي لا يدعم إشعارات الويب المباشرة.', 'warning');
       return false;
     }
     try {
@@ -2317,8 +2436,8 @@
   function computeLessonPoints(count, width = 360, stepY = 96) {
     const points = [];
     const midX = Math.round(width / 2); // 180 (50%)
-    const rightX = Math.round(width * 0.69); // 248 (~69%)
-    const leftX = Math.round(width * 0.31); // 112 (~31%)
+    const rightX = Math.round(width * 0.64); // 230 (64%)
+    const leftX = Math.round(width * 0.36); // 130 (36%)
     const xPattern = [midX, rightX, midX, leftX];
     for (let i = 0; i < count; i++) {
       const x = xPattern[i % 4];
@@ -2517,7 +2636,7 @@
 
     if (!node || !node.ids.length) return;
     if (getLessonStatus(node) === 'locked') {
-      alert('🔒 هذا الدرس مقفل. أتمم الدرس السابق أولاً لتفتحه بالتسلسل.');
+      showToast('🔒 هذا الدرس مقفل حالياً. أتمم الدرس السابق أولاً لتفتحه بالتسلسل.', 'warning');
       return;
     }
     markUserActivity();
@@ -2557,7 +2676,7 @@
   function initHafazniSession(ids) {
     const words = getWordsByIds(ids);
     if (!words.length) {
-      alert('حدد كلمات أولًا من صفحة الكلمات.');
+      showToast('⚠️ حدد كلمات أولاً من صفحة الكلمات لبدء جلسة حفظني.', 'warning');
       return;
     }
 
@@ -3103,7 +3222,7 @@
 
   function reviewHafazniMistakes() {
     if (!state.hafazni.mistakes.length) {
-      alert('لا توجد أخطاء في آخر جلسة.');
+      showToast('🎉 رائع! لا توجد أخطاء في آخر جلسة مراجعة.', 'success');
       return;
     }
     // بدء جلسة جديدة بالأخطاء فقط
@@ -3152,7 +3271,7 @@
       : state.vocabulary;
 
     if (!words.length) {
-      alert(isDifficultOnly ? '⚠️ لا توجد كلمات صعبة حالياً للتصدير.' : '⚠️ لا توجد كلمات للتصدير.');
+      showToast(isDifficultOnly ? '⚠️ لا توجد كلمات صعبة حالياً لتصديرها كـ PDF.' : '⚠️ بنك المفردات فارغ، لا توجد كلمات لتصديرها.', 'warning');
       return;
     }
 
@@ -3383,14 +3502,19 @@
 
   function downloadTextWords() {
     if (!state.vocabulary.length) {
-      alert('لا توجد كلمات لتنزيلها.');
+      showToast('⚠️ لا توجد كلمات لتنزيلها، بنك المفردات فارغ.', 'warning');
       return;
     }
     const lines = state.vocabulary.map(w => `${w.english}, ${w.arabic}`).join('\n');
     downloadBlob(lines, 'words.txt', 'text/plain;charset=utf-8');
+    showToast(`📄 تم تنزيل ${state.vocabulary.length} كلمة كملف نصي.`, 'success');
   }
 
   function exportBackup() {
+    if (!state.vocabulary.length) {
+      showToast('⚠️ لا توجد كلمات لحفظها في النسخة الاحتياطية.', 'warning');
+      return;
+    }
     const backup = {
       app: 'Flashcards',
       version: APP_VERSION,
@@ -3398,6 +3522,7 @@
       data: buildPersistedState()
     };
     downloadBlob(JSON.stringify(backup, null, 2), `flashcards-backup-${APP_VERSION}.json`, 'application/json;charset=utf-8');
+    showToast('💾 تم حفظ وتنزيل النسخة الاحتياطية بنجاح.', 'success');
   }
 
   async function importBackup(file) {
@@ -3426,10 +3551,10 @@
       updateTestModeUI();
       saveState(true);
       updateAllViews();
-      alert(`✅ تم استرجاع ${state.vocabulary.length} كلمة.`);
+      showToast(`✅ تم استرجاع ${state.vocabulary.length} كلمة بنجاح.`, 'success');
     } catch (error) {
       console.error(error);
-      alert('❌ ملف النسخة الاحتياطية غير صالح.');
+      showToast('❌ ملف النسخة الاحتياطية غير صالح.', 'error');
     }
   }
 
@@ -3446,9 +3571,23 @@
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function resetProgress() {
-    if (!state.vocabulary.length) return;
-    if (!confirm('إعادة كل الكلمات إلى "جديدة"؟')) return;
+  async function resetProgress() {
+    if (!state.vocabulary.length) {
+      showToast('⚠️ لا توجد كلمات لتصفير تقدمها.', 'warning');
+      return;
+    }
+    const count = state.vocabulary.length;
+    const ok = await showConfirmDialog({
+      title: '🔄 تصفير التقدم وإعادة الضبط',
+      subtitle: 'إعادة ضبط حالات جميع الكلمات إلى "جديدة"',
+      message: `هل أنت متأكد من رغبتك في تصفير تقدم ومراجعات جميع الكلمات (${count} كلمة)؟`,
+      details: 'ستظل الكلمات موجودة في بنك المفردات، ولكن ستعود حالتها إلى "جديدة" وستُصفّر عدادات الحفظ ومحطات مسار حفظني لتبدأ رحلتك من الصفر.',
+      okText: '🔄 نعم، تصفير التقدم',
+      cancelText: 'إلغاء',
+      isDanger: false,
+      icon: '🔄'
+    });
+    if (!ok) return;
 
     state.vocabulary.forEach(w => {
       w.status = 'new';
@@ -3465,11 +3604,27 @@
     state.hafazniLessons.lastUnlockDate = null;
     saveState(true);
     updateAllViews();
+    showToast('🔄 تم تصفير جميع حالات الكلمات والتقدم بنجاح.', 'success');
   }
 
-  function resetAll() {
-    if (!state.vocabulary.length) return;
-    if (!confirm('سيتم حذف كل الكلمات والتقدم من هذا المتصفح. هل أنت متأكد؟')) return;
+  async function resetAll() {
+    if (!state.vocabulary.length) {
+      showToast('⚠️ لا توجد كلمات لحذفها، القائمة فارغة بالفعل.', 'warning');
+      return;
+    }
+
+    const count = state.vocabulary.length;
+    const ok = await showConfirmDialog({
+      title: '🗑️ مسح كل الكلمات والتقدم',
+      subtitle: 'حذف نهائي وشامل لجميع المفردات',
+      message: `تحذير: هل أنت متأكد تماماً من حذف جميع الكلمات (${count} كلمة) ومسح كل السجلات والتقدم نهائياً؟`,
+      details: 'سيتم مسح كل المفردات وسجلات حفظني من هذا المتصفح ولن يمكنك استرجاعها إلا في حال وجود ملف نسخة احتياطية (JSON) لديك.',
+      okText: `🗑️ نعم، امسح كل الكلمات (${count})`,
+      cancelText: 'تراجع',
+      isDanger: true,
+      icon: '⚠️'
+    });
+    if (!ok) return;
 
     state.vocabulary = [];
     state.currentIndex = 0;
@@ -3477,13 +3632,15 @@
     state.studyFilter = 'all';
     state.hafazni = { active: false, sessionWords: [], currentIndex: 0, totalWords: 0, activeLessonId: null, mistakes: [], processing: false, summary: { correct: 0, wrong: 0, attempts: 0, mastered: [], needsReview: [] } };
     state.hafazniLessons = { mode: 'manual', lessonSize: 10, completedLessonIds: [], dailyUnlockedCount: 1, lastUnlockDate: null };
-    el.hafazniSession.style.display = 'none';
-    el.hafazniSummary.style.display = 'none';
-    el.hafazniLessonsCard.style.display = 'block';
-    el.hafazniSetupCard.style.display = 'block';
+    if (el.hafazniSession) el.hafazniSession.style.display = 'none';
+    if (el.hafazniSummary) el.hafazniSummary.style.display = 'none';
+    if (el.hafazniLessonsCard) el.hafazniLessonsCard.style.display = 'block';
+    if (el.hafazniSetupCard) el.hafazniSetupCard.style.display = 'block';
     storageSet(STORAGE_KEY, buildPersistedState());
+    saveState(true);
     updateAllViews();
     navigateTo('homePage');
+    showToast(`🗑️ تم مسح جميع الكلمات (${count} كلمة) بنجاح.`, 'success');
   }
 
   function updateAllViews() {
@@ -3497,6 +3654,91 @@
 
   function openModal(modal) { if (modal) modal.style.display = 'flex'; }
   function closeModal(modal) { if (modal) modal.style.display = 'none'; }
+
+  let activeConfirmResolve = null;
+
+  function showConfirmDialog({
+    title = 'تأكيد الإجراء',
+    subtitle = 'يرجى التأكيد للمتابعة',
+    message = 'هل أنت متأكد من تنفيذ هذا الإجراء؟',
+    details = '',
+    okText = 'تأكيد',
+    cancelText = 'إلغاء',
+    isDanger = true,
+    icon = '🗑️'
+  } = {}) {
+    return new Promise((resolve) => {
+      if (activeConfirmResolve) {
+        activeConfirmResolve(false);
+        activeConfirmResolve = null;
+      }
+
+      if (!el.confirmActionModal) {
+        try {
+          resolve(window.confirm(message));
+        } catch (_) {
+          resolve(true);
+        }
+        return;
+      }
+
+      activeConfirmResolve = resolve;
+
+      if (el.confirmModalTitle) el.confirmModalTitle.textContent = title;
+      if (el.confirmModalSubtitle) el.confirmModalSubtitle.textContent = subtitle;
+      if (el.confirmModalMessage) el.confirmModalMessage.textContent = message;
+      if (el.confirmModalIcon) {
+        el.confirmModalIcon.textContent = icon;
+        el.confirmModalIcon.className = 'confirm-modal-icon ' + (isDanger ? 'danger' : 'primary');
+      }
+
+      if (el.confirmModalDetails) {
+        if (details) {
+          el.confirmModalDetails.textContent = details;
+          el.confirmModalDetails.style.display = 'block';
+        } else {
+          el.confirmModalDetails.style.display = 'none';
+        }
+      }
+
+      if (el.confirmModalOkBtn) {
+        el.confirmModalOkBtn.textContent = okText;
+        el.confirmModalOkBtn.className = isDanger ? 'ctrl-btn danger-btn' : 'ctrl-btn primary';
+      }
+
+      if (el.confirmModalCancelBtn) {
+        el.confirmModalCancelBtn.textContent = cancelText;
+      }
+
+      openModal(el.confirmActionModal);
+    });
+  }
+
+  function closeConfirmDialog(result = false) {
+    if (el.confirmActionModal) {
+      closeModal(el.confirmActionModal);
+    }
+    if (activeConfirmResolve) {
+      const res = activeConfirmResolve;
+      activeConfirmResolve = null;
+      res(Boolean(result));
+    }
+  }
+
+  let toastTimer = null;
+  function showToast(message, type = 'info', duration = 3200) {
+    if (!el.appToast) return;
+    if (toastTimer) clearTimeout(toastTimer);
+
+    el.appToast.textContent = message;
+    el.appToast.className = `app-toast ${type} visible`;
+
+    toastTimer = setTimeout(() => {
+      if (el.appToast) {
+        el.appToast.classList.remove('visible');
+      }
+    }, duration);
+  }
 
   function showUpdateIfNeeded() {
     const seen = storageGet(UPDATE_KEY);
@@ -3701,6 +3943,7 @@
 
     el.selectAllBtn.addEventListener('click', selectAll);
     el.clearSelectionBtn.addEventListener('click', clearSelection);
+    el.deleteSelectedBtn?.addEventListener('click', deleteSelectedWords);
     el.sendToHafazniBtn.addEventListener('click', goToHafazni);
     el.downloadWordsBtn.addEventListener('click', () => {
       openModal(el.exportWordsModal);
@@ -3730,7 +3973,7 @@
 
     el.startHafazniBtn.addEventListener('click', () => {
       if (!state.selectedIds.length) {
-        alert('حدد كلمات أولاً من صفحة الكلمات.');
+        showToast('⚠️ حدد كلمات أولاً من صفحة الكلمات للبدء.', 'warning');
         return;
       }
       state.hafazni.activeLessonId = null; // جلسة مخصصة حرة، مش درس من الخريطة
@@ -3750,7 +3993,7 @@
 
       const status = getLessonStatus(nodeData);
       if (status === 'locked') {
-        alert('🔒 هذا الدرس مقفل. أتمم الدرس السابق لفتحه.');
+        showToast('🔒 هذا الدرس مقفل. أتمم الدرس السابق لفتحه بالتسلسل.', 'warning');
         return;
       }
 
@@ -4057,10 +4300,21 @@
     el.saveEditWordBtn?.addEventListener('click', saveEditWord);
     el.cancelEditWordBtn?.addEventListener('click', closeEditWordModal);
     el.closeEditWordModal?.addEventListener('click', closeEditWordModal);
+    el.deleteWordFromModalBtn?.addEventListener('click', () => {
+      const wordId = el.editWordId?.value;
+      if (!wordId) return;
+      closeEditWordModal();
+      deleteWord(wordId);
+    });
     el.editWordForm?.addEventListener('submit', (e) => {
       e.preventDefault();
       saveEditWord();
     });
+
+    // أحداث نافذة تأكيد الإجراءات المخصصة
+    el.confirmModalOkBtn?.addEventListener('click', () => closeConfirmDialog(true));
+    el.confirmModalCancelBtn?.addEventListener('click', () => closeConfirmDialog(false));
+    el.closeConfirmModal?.addEventListener('click', () => closeConfirmDialog(false));
 
     // أحداث أزرار تبديل الحالة داخل نافذة تعديل الكلمة
     if (el.editStatusPills) {
@@ -4096,6 +4350,7 @@
       if (event.target === el.shareWordModal) closeShareWordModal();
       if (event.target === el.exportWordsModal) closeModal(el.exportWordsModal);
       if (event.target === el.aboutUsModal) closeModal(el.aboutUsModal);
+      if (event.target === el.confirmActionModal) closeConfirmDialog(false);
     });
 
     document.addEventListener('keydown', event => {
@@ -4170,7 +4425,8 @@
     updateAllViews();
     updateNotificationUI();
 
-    if (!state.vocabulary.length) {
+    const hasPriorStorage = storageGet(STORAGE_KEY) !== null;
+    if (!hasPriorStorage && !state.vocabulary.length) {
       state.vocabulary = normalizeVocabulary(STARTER_VOCABULARY);
       saveState(true);
     }
