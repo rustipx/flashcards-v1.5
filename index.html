@@ -10,10 +10,25 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
   <link rel="manifest" href="./manifest.json">
-  <link rel="icon" href="./icons/icon-192.png" type="image/png">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="icon" href="./icon-192.png" type="image/png">
+  <link rel="stylesheet" href="./style.css?v=1.5.3">
 </head>
 <body>
+
+<!-- شريط التحديث التلقائي الذكي عند توفر كود جديد -->
+<div id="appUpdateBanner" class="app-update-banner hidden" role="alert" aria-live="polite">
+  <div class="update-banner-body">
+    <span class="update-banner-icon">🚀</span>
+    <div class="update-banner-text">
+      <strong>يتوفر تحديث جديد للتطبيق (<span id="updateBannerVersion">1.5.3</span>)</strong>
+      <p>تم تنزيل الأكواد الجديدة بنجاح. بياناتك وكلماتك وتقدمك محفوظون 100%.</p>
+    </div>
+  </div>
+  <div class="update-banner-actions">
+    <button id="applyUpdateBtn" class="ctrl-btn primary sm" type="button">تطبيق الآن 🔄</button>
+    <button id="dismissUpdateBtn" class="ctrl-btn text-btn sm" type="button">لاحقاً</button>
+  </div>
+</div>
 
 <div class="page active" id="homePage">
   <div class="header">
@@ -573,9 +588,18 @@
   </div>
 
   <div class="settings-group">
-    <label class="settings-label">ℹ️ معلومات الإصدار</label>
-    <p class="version-text">الإصدار الحالي: <strong>1.5.3 🚀</strong></p>
-    <button class="ctrl-btn" id="viewFeaturesBtn" type="button">📋 عرض ميزات وتحديثات هذا الإصدار</button>
+    <label class="settings-label">ℹ️ معلومات وإدارة الإصدار والتحديثات</label>
+    <p class="version-text">الإصدار المثبت: <strong>1.5.3 🚀</strong></p>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="ctrl-btn" id="viewFeaturesBtn" type="button">📋 عرض ميزات وتحديثات هذا الإصدار</button>
+      <button class="ctrl-btn primary" id="checkUpdateAppBtn" type="button" style="font-size:0.95rem;">🔍 فحص التحديثات وتثبيت الجديد تلقائياً</button>
+      <button class="ctrl-btn text-btn" id="forceUpdateAppBtn" type="button" style="border:1px dashed var(--border); font-size:0.85rem; color:var(--text-secondary);">🔄 إعادة تحميل الأكواد وتنظيف ملفات الكاش المؤقتة</button>
+      <div style="background:var(--surface-alt); border-radius:var(--radius-sm); padding:8px 10px; border:1px solid var(--border); margin-top:2px;">
+        <small style="color:var(--text-secondary); font-size:0.82rem; line-height:1.45; display:block;">
+          🛡️ <strong>ضمان أمان البيانات:</strong> التحديث يستبدل ملفات الكود القديمة فقط بملفات جديدة. جميع كلماتك، تقدمك، دروسك، خزنة الأخطاء، وإحصائياتك تبقى محفوظة 100% بدون أي مساس.
+        </small>
+      </div>
+    </div>
   </div>
 
   <div class="settings-group">
@@ -1056,7 +1080,7 @@
 <!-- إشعار النظام الموحد الفوري (App Toast Notification) -->
 <div id="appToast" class="app-toast" role="alert" aria-live="assertive"></div>
 
-<script src="./script.js" defer></script>
+<script src="./script.js?v=1.5.3" defer></script>
 </body>
 </html>
 

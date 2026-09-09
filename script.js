@@ -178,7 +178,9 @@
       // عناصر نافذة التأكيد المخصصة والتوست (v1.5.3):
       'confirmActionModal','closeConfirmModal','confirmModalIcon','confirmModalTitle',
       'confirmModalSubtitle','confirmModalMessage','confirmModalDetails',
-      'confirmModalOkBtn','confirmModalCancelBtn','appToast'
+      'confirmModalOkBtn','confirmModalCancelBtn','appToast',
+      'forceUpdateAppBtn','checkUpdateAppBtn',
+      'appUpdateBanner','updateBannerVersion','applyUpdateBtn','dismissUpdateBtn'
     ].forEach(id => el[id] = $(id));
   }
 
@@ -5097,36 +5099,222 @@
       }
     });
 
+    el.checkUpdateAppBtn?.addEventListener('click', () => {
+      updateEngine.checkForUpdates(true);
+    });
+
+    el.forceUpdateAppBtn?.addEventListener('click', () => {
+      updateEngine.applyUpdateSafely();
+    });
+
+    el.applyUpdateBtn?.addEventListener('click', () => {
+      updateEngine.applyUpdateSafely();
+    });
+
+    el.dismissUpdateBtn?.addEventListener('click', () => {
+      updateEngine.hideUpdateBanner();
+    });
+
     window.addEventListener('beforeunload', () => saveState(true));
     window.addEventListener('pagehide', () => saveState(true));
 
     setupFeedbackForm();
   }
 
+  // ============================================================
+  // خوارزمية الفحص والتحديث الذاتي التلقائي الذكي (Auto-Update Engine)
+  // ============================================================
+  const updateEngine = {
+    checking: false,
+    updateReady: false,
+    newVersionFound: null,
+
+    // 1. فحص الاتصال بالإنترنت وسرعته وجودة الاستجابة
+    async checkNetworkQuality() {
+      if (!navigator.onLine) {
+        return { online: false, goodSpeed: false, latency: null };
+      }
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500); // مهلة صارمة 3.5 ثوانٍ
+        const startTime = performance.now();
+        const res = await fetch(`./version.json?_ping=${Date.now()}`, {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const latency = Math.round(performance.now() - startTime);
+        if (!res.ok) {
+          return { online: true, goodSpeed: false, latency };
+        }
+        const data = await res.json();
+        return { online: true, goodSpeed: latency <= 3500, latency, remoteData: data };
+      } catch (err) {
+        return { online: false, goodSpeed: false, latency: null };
+      }
+    },
+
+    // 2. التحقق هل توجد ملفات جديدة أو نسخة أحدث
+    async checkForUpdates(manualTrigger = false) {
+      if (this.checking) return;
+      this.checking = true;
+
+      if (manualTrigger) {
+        showToast('🔍 جارٍ فحص سرعة الإنترنت والتأكد من وجود تحديثات...', 'info');
+      }
+
+      // فحص الإنترنت وجودة الاتصال
+      const net = await this.checkNetworkQuality();
+
+      // حالة عدم وجود إنترنت: لا نفعل شيئاً على الإطلاق
+      if (!net.online) {
+        this.checking = false;
+        if (manualTrigger) {
+          showToast('📡 لا يوجد اتصال بالإنترنت حالياً. التطبيق يعمل بنمط Offline بكامل كلماته وبياناته بأمان.', 'info');
+        }
+        return;
+      }
+
+      // حالة الإنترنت بطيء أو غير مستقر: لا نفعل شيئاً
+      if (!net.goodSpeed) {
+        this.checking = false;
+        if (manualTrigger) {
+          showToast('⚠️ اتصال الإنترنت بطيء حالياً. يفضل الانتظار حتى يستقر الاتصال لضمان سرعة التحديث.', 'warning');
+        }
+        return;
+      }
+
+      // مقارنة الإصدار الحالي مع إصدار السيرفر المباشر
+      const remoteVersion = net.remoteData?.version;
+      const isNewVersion = remoteVersion && (remoteVersion !== APP_VERSION);
+
+      // فحص هل السيرفيس ووركر اكتشف ملفات جديدة أيضاً
+      let swHasUpdate = false;
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg) {
+            await reg.update();
+            if (reg.waiting || reg.installing) {
+              swHasUpdate = true;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // إذا لم توجد ملفات جديدة: لا نفعل أي شيء إطلاقاً
+      if (!isNewVersion && !swHasUpdate) {
+        this.checking = false;
+        if (manualTrigger) {
+          showToast(`✅ تطبيقك محدث بالكامل على أحدث إصدار (${APP_VERSION}) ولا توجد أي ملفات جديدة!`, 'success');
+        }
+        return;
+      }
+
+      // توجد ملفات جديدة بالفعل!
+      this.updateReady = true;
+      this.newVersionFound = remoteVersion || APP_VERSION;
+
+      if (manualTrigger) {
+        await this.applyUpdateSafely();
+      } else {
+        // فحص: هل المستخدم منشغل بجلسة كتابة أو حفظني أو اختبار؟
+        const isBusy = (sprintQuizState?.active || hafazniState?.active || testModeState?.active);
+        if (!isBusy) {
+          this.showUpdateBanner(this.newVersionFound);
+        } else {
+          // الانتظار بهدوء حتى ينتهي المستخدم من جلسته دون مقاطعة
+          const pollFree = setInterval(() => {
+            const stillBusy = (sprintQuizState?.active || hafazniState?.active || testModeState?.active);
+            if (!stillBusy) {
+              clearInterval(pollFree);
+              this.showUpdateBanner(this.newVersionFound);
+            }
+          }, 3500);
+        }
+      }
+      this.checking = false;
+    },
+
+    // 3. تطبيق التحديث مع الحفاظ التام بنسبة 100% على كل كلمات وتقدم ودروس المستخدم
+    async applyUpdateSafely() {
+      // حفظ بيانات المستخدم فوراً قبل مس أي شيء!
+      saveState(true);
+      showToast('🔄 جارٍ تحديث كود التطبيق مع الحفاظ التام على جميع كلماتك وتقدمك...', 'info');
+
+      try {
+        // حذف كاش ملفات الكود القديمة فقط
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg && reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+        }
+      } catch (err) {
+        console.warn('Update clear notice:', err);
+      }
+
+      // إعادة تحميل آمنة بالملفات الجديدة
+      setTimeout(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('refresh', Date.now().toString());
+        window.location.replace(url.toString());
+      }, 450);
+    },
+
+    showUpdateBanner(version) {
+      if (!el.appUpdateBanner) return;
+      if (el.updateBannerVersion) el.updateBannerVersion.textContent = version || APP_VERSION;
+      el.appUpdateBanner.classList.remove('hidden');
+    },
+
+    hideUpdateBanner() {
+      if (el.appUpdateBanner) el.appUpdateBanner.classList.add('hidden');
+    }
+  };
+
   async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     try {
-      // updateViaCache: 'none' يجبر المتصفح على التأكد من sw.js من السيرفر
-      // مباشرة في كل مرة، بدل ما يعتمد على الكاش العادي بتاع المتصفح (اللي كان
-      // بيمنع اكتشاف أي تحديث حقيقي حتى مع الـ refresh العادي على GitHub Pages).
+      const hadPreviousController = !!navigator.serviceWorker.controller;
+      let isRefreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadPreviousController && !isRefreshing) {
+          isRefreshing = true;
+          window.location.reload();
+        }
+      });
+
       const registration = await navigator.serviceWorker.register('./sw.js', {
         scope: './',
         updateViaCache: 'none'
       });
-      // لا نعمل reload تلقائي عند تفعيل نسخة جديدة من الـ Service Worker.
-      // لو فيه تحديث وانت متصل بالنت، هيتحمّل بهدوء في الخلفية بدون ما يقاطع
-      // أي جلسة شغالة (حفظني/اختبار) أو يضيّع أي بيانات غير محفوظة، وهيتفعّل
-      // تلقائيًا في المرة الجاية اللي التطبيق يتفتح فيها من جديد.
-      // لو مفيش نت، الطلب هيفشل بصمت وهيفضل التطبيق شغال offline من الكاش
-      // الحالي زي ما هو بدون أي تغيير أو حذف.
+
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        newWorker?.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // كود جديد تم تنزيله في الخلفية
+            updateEngine.checkForUpdates(false);
+          }
+        });
+      });
+
       registration.update().catch(() => {});
-      window.addEventListener('online', () => registration.update().catch(() => {}));
-      // نتأكد كمان من وجود تحديث في كل مرة الصفحة ترجع تبقى ظاهرة (تبويب كان
-      // مفتوح في الخلفية، أو المستخدم رجع للتطبيق بعد فترة) — بدون أي إزعاج
-      // أو reload، فقط فحص هادئ في الخلفية.
+      window.addEventListener('online', () => {
+        registration.update().catch(() => {});
+        updateEngine.checkForUpdates(false);
+      });
+
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           registration.update().catch(() => {});
+          updateEngine.checkForUpdates(false);
           checkDailyLessonNotification();
           markUserActivity();
         }
@@ -5161,6 +5349,11 @@
       registerServiceWorker();
     }
     showUpdateIfNeeded();
+
+    // فحص ذكي وتلقائي للتحديثات في الخلفية بعد اكتمال التحميل
+    setTimeout(() => {
+      updateEngine.checkForUpdates(false);
+    }, 2500);
 
     // فحص إشعار التذكير بدرس اليوم عند الفتح وكل 15 دقيقة
     checkDailyLessonNotification();
