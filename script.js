@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const APP_VERSION = '1.5.2';
+  const APP_VERSION = '1.5.3';
   const STORAGE_KEY = 'flashcards_v1_4';
   const OLD_STORAGE_KEYS = ['flashcards_v2'];
   const UPDATE_KEY = 'flashcards_last_seen_version';
@@ -86,6 +86,15 @@
       lastActivityTime: Date.now(),
       lastReminderTime: null
     },
+    badges: {
+      unlocked: {}
+    },
+    dailySprint: {
+      lastCompletedDate: null,
+      totalCompleted: 0
+    },
+    voiceCorrectTotal: 0,
+    vaultMasteredCount: 0,
     search: ''
   };
 
@@ -149,6 +158,18 @@
       // عناصر تصدير الـ PDF واحتفال الكنفيتي (v1.5.2):
       'exportWordsModal','closeExportWordsModal','exportPdfAllBtn','exportPdfDifficultBtn','exportTxtBtn',
       'confettiCanvas',
+      // عناصر ميزات 1.5.3 (TSV, Sprint, Badges, Vault):
+      'exportTsvAllBtn','exportTsvDifficultBtn',
+      'dailySprintCard','sprintCardSubtitle','sprintStatusBadge','sprintCardBody','sprintCardDesc',
+      'startDailySprintBtn','dailySprintModal','closeSprintModal','sprintModalTitle',
+      'sprintProgressLabel','sprintTimerChip','sprintTimerText','sprintActiveBody',
+      'sprintQuestionPrompt','sprintQuestionWord','sprintPronounceBtn',
+      'sprintWritingPanel','sprintInput','sprintCheckBtn','sprintHintBtn','sprintSkipBtn','sprintFeedback',
+      'sprintResultBody','sprintStatCorrect','sprintStatTime','finishSprintBtn',
+      'achievementsBannerCard','achieveBannerSub','viewAchievementsBtn','achieveMiniChips',
+      'settingsAchievementsBtn','achievementsModal','closeAchievementsModal',
+      'achieveModalCount','achieveModalTotal','achievementsGrid',
+      'vaultCard','vaultSubtitle','vaultCounterBadge','startVaultReviewBtn','filterVaultWordsBtn',
       // عناصر مراجعة أخطاء التقييم الشامل في حفظني:
       'hafazniMistakesBox','hafazniMistakesList',
       // عناصر فريق التطوير (Team rustipx):
@@ -196,6 +217,7 @@
       due: source.due ? safeNumber(source.due, now()) : now(),
       correctCount: Math.max(0, safeNumber(source.correctCount, 0)),
       wrongCount: Math.max(0, safeNumber(source.wrongCount, 0)),
+      vaultStreak: Math.max(0, safeNumber(source.vaultStreak, 0)),
       selected: Boolean(source.selected),
       createdAt: source.createdAt ? safeNumber(source.createdAt, now()) : now()
     };
@@ -256,7 +278,11 @@
       wotd: state.wotd,
       streak: state.streak,
       studyTime: state.studyTime,
-      notifications: state.notifications
+      notifications: state.notifications,
+      badges: state.badges,
+      dailySprint: state.dailySprint,
+      voiceCorrectTotal: state.voiceCorrectTotal,
+      vaultMasteredCount: state.vaultMasteredCount
     };
   }
 
@@ -353,6 +379,17 @@
         lastActivityTime: Number.isFinite(savedNotifs.lastActivityTime) ? savedNotifs.lastActivityTime : Date.now(),
         lastReminderTime: Number.isFinite(savedNotifs.lastReminderTime) ? savedNotifs.lastReminderTime : null
       };
+      const savedBadges = data.badges || {};
+      state.badges = {
+        unlocked: (savedBadges.unlocked && typeof savedBadges.unlocked === 'object') ? savedBadges.unlocked : {}
+      };
+      const savedSprint = data.dailySprint || {};
+      state.dailySprint = {
+        lastCompletedDate: typeof savedSprint.lastCompletedDate === 'string' ? savedSprint.lastCompletedDate : null,
+        totalCompleted: Math.max(0, safeNumber(savedSprint.totalCompleted, 0))
+      };
+      state.voiceCorrectTotal = Math.max(0, safeNumber(data.voiceCorrectTotal, 0));
+      state.vaultMasteredCount = Math.max(0, safeNumber(data.vaultMasteredCount, 0));
       state.vocabulary.forEach(w => {
         w.selected = state.selectedIds.includes(w.id) || w.selected;
       });
@@ -649,12 +686,16 @@
 
   function updateAllViews() {
     updateStats();
-    renderWordOfTheDay();
+    if (typeof renderWordOfTheDay === 'function') renderWordOfTheDay();
     updateStudyView();
     updateTestView();
     if (typeof renderWordList === 'function') renderWordList(state.search);
+    if (typeof updateSelectionUI === 'function') updateSelectionUI();
     if (typeof updateHafazniOverview === 'function') updateHafazniOverview();
     if (typeof updateStreakAndStudyUI === 'function') updateStreakAndStudyUI();
+    if (typeof renderSprintCard === 'function') renderSprintCard();
+    if (typeof renderAchievementsUI === 'function') renderAchievementsUI();
+    if (typeof renderVaultCard === 'function') renderVaultCard();
   }
 
   function updateStats() {
@@ -1095,18 +1136,35 @@
 
     if (isCorrect) {
       word.correctCount += 1;
-      word.status = 'learned';
+      if (state.testSubMode === 'voice') {
+        state.voiceCorrectTotal = (state.voiceCorrectTotal || 0) + 1;
+      }
+      if ((word.wrongCount || 0) > 2 && (word.vaultStreak || 0) < 3) {
+        word.vaultStreak = (word.vaultStreak || 0) + 1;
+        if (word.vaultStreak >= 3) {
+          word.status = 'learned';
+          state.vaultMasteredCount = (state.vaultMasteredCount || 0) + 1;
+          showToast(`🎉 أتقنت كلمة "${word.english}" بنسبة 100% وتخرجت من الخزنة!`, 'success');
+          triggerConfetti();
+        }
+      } else {
+        word.status = 'learned';
+      }
       word.interval = word.interval > 0 ? Math.min(word.interval * 2, 720) : 1;
     } else {
       word.wrongCount += 1;
       word.status = 'difficult';
       word.interval = 0;
+      if ((word.wrongCount || 0) > 2) {
+        word.vaultStreak = 0;
+      }
     }
 
     word.lastReview = now();
     word.due = now() + word.interval * 3600000;
     saveState(true);
     updateStats();
+    if (typeof checkAchievements === 'function') checkAchievements();
 
     window.setTimeout(() => {
       if (state.currentPage === 'testPage') {
@@ -1369,37 +1427,39 @@
       let arabic = '';
       let category = 'عام';
 
-      const csv = parseCSVLine(line);
-      if (csv.length >= 3) {
-        english = csv[0].trim();
-        arabic = csv[1].trim();
-        category = csv[2].trim() || 'عام';
-      } else if (csv.length === 2) {
-        english = csv[0].trim();
-        arabic = csv[1].trim();
-      } else if (line.includes('=')) {
-        const parts = line.split('=');
-        english = parts[0]?.trim() || '';
-        arabic = parts[1]?.trim() || '';
-        if (parts[2]) category = parts[2].trim() || 'عام';
-      } else if (line.includes('→')) {
-        const parts = line.split('→');
-        english = parts[0]?.trim() || '';
-        arabic = parts[1]?.trim() || '';
-        if (parts[2]) category = parts[2].trim() || 'عام';
-      } else if (line.includes(' - ')) {
-        const parts = line.split(' - ');
-        english = parts[0]?.trim() || '';
-        arabic = parts[1]?.trim() || '';
-        if (parts[2]) category = parts[2].trim() || 'عام';
-      } else if (line.includes('\t')) {
+      if (line.includes('\t')) {
         const parts = line.split('\t');
         english = parts[0]?.trim() || '';
         arabic = parts[1]?.trim() || '';
         if (parts[2]) category = parts[2].trim() || 'عام';
       } else {
-        english = line;
-        arabic = '⚠️';
+        const csv = parseCSVLine(line);
+        if (csv.length >= 3) {
+          english = csv[0].trim();
+          arabic = csv[1].trim();
+          category = csv[2].trim() || 'عام';
+        } else if (csv.length === 2) {
+          english = csv[0].trim();
+          arabic = csv[1].trim();
+        } else if (line.includes('=')) {
+          const parts = line.split('=');
+          english = parts[0]?.trim() || '';
+          arabic = parts[1]?.trim() || '';
+          if (parts[2]) category = parts[2].trim() || 'عام';
+        } else if (line.includes('→')) {
+          const parts = line.split('→');
+          english = parts[0]?.trim() || '';
+          arabic = parts[1]?.trim() || '';
+          if (parts[2]) category = parts[2].trim() || 'عام';
+        } else if (line.includes(' - ')) {
+          const parts = line.split(' - ');
+          english = parts[0]?.trim() || '';
+          arabic = parts[1]?.trim() || '';
+          if (parts[2]) category = parts[2].trim() || 'عام';
+        } else {
+          english = line;
+          arabic = '⚠️';
+        }
       }
 
       english = english.replace(/^["']|["']$/g, '').trim();
@@ -1783,6 +1843,23 @@
       fragment.appendChild(btn);
     });
 
+    const vaultWordsCount = (typeof getVaultWords === 'function') ? getVaultWords().length : 0;
+    if (vaultWordsCount > 0) {
+      const vaultBtn = document.createElement('button');
+      vaultBtn.type = 'button';
+      vaultBtn.className = 'cat-pill-btn' + (state.categoryFilter === '__vault__' ? ' active' : '');
+      vaultBtn.style.borderColor = 'var(--red-border)';
+      vaultBtn.innerHTML = `🧠 الخزنة <span class="cat-pill-count" style="background:var(--red-bg);color:var(--red-text);font-weight:800;">${vaultWordsCount}</span>`;
+      vaultBtn.addEventListener('click', () => {
+        state.categoryFilter = state.categoryFilter === '__vault__' ? 'all' : '__vault__';
+        renderCategoryFilterBar();
+        renderWordList(state.search);
+        if (typeof renderVaultCard === 'function') renderVaultCard();
+        saveState();
+      });
+      fragment.appendChild(vaultBtn);
+    }
+
     el.categoryFilterBar.appendChild(fragment);
   }
 
@@ -1794,8 +1871,12 @@
     const items = state.vocabulary
       .map((word, index) => ({ word, index }))
       .filter(({ word }) => {
-        // فلتر التصنيف المحدد
-        if (state.categoryFilter !== 'all') {
+        // فلتر التصنيف المحدد أو الخزنة
+        if (state.categoryFilter === '__vault__') {
+          if (!((word.wrongCount || 0) > 2 && (word.vaultStreak || 0) < 3)) {
+            return false;
+          }
+        } else if (state.categoryFilter !== 'all') {
           const wordCat = (word.category || 'عام').trim();
           if (wordCat !== state.categoryFilter && !(word.tags || []).includes(state.categoryFilter)) {
             return false;
@@ -1896,6 +1977,15 @@
       });
 
       pairDetails.append(arabic, tagSpan);
+
+      if ((word.wrongCount || 0) > 2 && (word.vaultStreak || 0) < 3) {
+        const vaultBadge = document.createElement('span');
+        vaultBadge.className = 'word-vault-tag';
+        vaultBadge.textContent = `🧠 بالخزنة (${word.vaultStreak || 0}/3)`;
+        vaultBadge.title = 'كلمة متعثرة في الخزنة — تتخرج بعد 3 إجابات صحيحة متتالية';
+        pairDetails.append(vaultBadge);
+      }
+
       pair.append(pairTop, pairDetails);
       mainRow.append(checkLabel, pair);
 
@@ -3510,6 +3600,582 @@
     showToast(`📄 تم تنزيل ${state.vocabulary.length} كلمة كملف نصي.`, 'success');
   }
 
+  /* ============================================================
+     1) Feature 1: Anki & Quizlet Export (TSV)
+     ============================================================ */
+  function exportTsvWords(filter = 'all') {
+    let words = state.vocabulary;
+    if (filter === 'difficult') {
+      words = words.filter(w => w.status === 'difficult');
+    }
+    if (!words.length) {
+      showToast(filter === 'difficult'
+        ? '⚠️ لا توجد كلمات صعبة حالياً لتصديرها.'
+        : '⚠️ لا توجد كلمات لتصديرها، بنك المفردات فارغ.', 'warning');
+      return;
+    }
+    const dateStr = getLocalDateStr();
+    const lines = words.map(w => {
+      const en = String(w.english || '').replace(/\t|\r?\n/g, ' ').trim();
+      const ar = String(w.arabic || '').replace(/\t|\r?\n/g, ' ').trim();
+      const cat = String(w.category || 'عام').replace(/\t|\r?\n/g, ' ').trim();
+      return `${en}\t${ar}\t${cat}`;
+    }).join('\n');
+
+    const fileName = filter === 'difficult'
+      ? `flashcards-difficult-anki-${dateStr}.tsv`
+      : `flashcards-all-anki-${dateStr}.tsv`;
+
+    downloadBlob(lines, fileName, 'text/tab-separated-values;charset=utf-8');
+    showToast(`📋 تم تصدير ${words.length} كلمة بصيغة TSV متوافقة مع Anki و Quizlet.`, 'success');
+  }
+
+  /* ============================================================
+     2) Feature 4: Mistake Bank (Weak Words Vault)
+     ============================================================ */
+  function getVaultWords() {
+    return state.vocabulary.filter(w => (w.wrongCount || 0) > 2 && (w.vaultStreak || 0) < 3);
+  }
+
+  function renderVaultCard() {
+    if (!el.vaultCard) return;
+    const vaultWords = getVaultWords();
+    const count = vaultWords.length;
+
+    if (el.vaultCounterBadge) {
+      if (count > 0) {
+        el.vaultCounterBadge.textContent = `${count} كلمة بالخزنة`;
+        el.vaultCounterBadge.className = 'vault-counter-badge has-words';
+      } else {
+        el.vaultCounterBadge.textContent = 'الخزنة فارغة ✨';
+        el.vaultCounterBadge.className = 'vault-counter-badge empty';
+      }
+    }
+
+    if (el.vaultSubtitle) {
+      if (count > 0) {
+        el.vaultSubtitle.textContent = `تضم الكلمات التي تكرر خطؤك فيها 3 مرات أو أكثر (${count} كلمة حالياً).`;
+      } else {
+        el.vaultSubtitle.textContent = 'رائع! لا توجد كلمات متعثرة حالياً، أداؤك ممتاز ومتقن.';
+      }
+    }
+
+    if (el.startVaultReviewBtn) {
+      el.startVaultReviewBtn.disabled = count === 0;
+      el.startVaultReviewBtn.style.opacity = count === 0 ? '0.6' : '1';
+      el.startVaultReviewBtn.style.cursor = count === 0 ? 'not-allowed' : 'pointer';
+    }
+
+    if (el.filterVaultWordsBtn) {
+      const isFiltering = state.categoryFilter === '__vault__';
+      el.filterVaultWordsBtn.textContent = isFiltering ? '🌟 عرض كل الكلمات' : '🔍 فلترة كلمات الخزنة بالجدول';
+      el.filterVaultWordsBtn.disabled = count === 0 && !isFiltering;
+      el.filterVaultWordsBtn.style.opacity = (count === 0 && !isFiltering) ? '0.6' : '1';
+    }
+  }
+
+  /* ============================================================
+     3) Feature 2: Badges & Achievements System
+     ============================================================ */
+  const ACHIEVEMENTS = [
+    {
+      id: 'first_word',
+      title: 'الخطوة الأولى',
+      description: 'إضافة أول كلمة إلى بنك المفردات',
+      icon: '🌱',
+      check: () => state.vocabulary.length >= 1
+    },
+    {
+      id: 'vocab_50',
+      title: 'جامع الكلمات',
+      description: 'الوصول إلى 50 كلمة في بنك المفردات',
+      icon: '📚',
+      check: () => state.vocabulary.length >= 50
+    },
+    {
+      id: 'first_mastered',
+      title: 'بداية الإتقان',
+      description: 'إتقان وحفظ أول كلمة بنجاح',
+      icon: '🎯',
+      check: () => state.vocabulary.some(w => w.status === 'learned')
+    },
+    {
+      id: 'mastered_20',
+      title: 'عقل متقد',
+      description: 'إتقان وحفظ 20 كلمة على الأقل',
+      icon: '🏆',
+      check: () => state.vocabulary.filter(w => w.status === 'learned').length >= 20
+    },
+    {
+      id: 'streak_3',
+      title: 'شعلة الاستمرار',
+      description: 'الحفاظ على الستريك اليومي لمدة 3 أيام متتالية',
+      icon: '🔥',
+      check: () => (state.streak?.current || 0) >= 3 || (state.streak?.best || 0) >= 3
+    },
+    {
+      id: 'sprint_runner',
+      title: 'عدّاء التحديات',
+      description: 'إكمال تحدي الـ 5 دقائق اليومي لأول مرة',
+      icon: '⚡',
+      check: () => (state.dailySprint?.totalCompleted || 0) >= 1
+    },
+    {
+      id: 'vault_graduate',
+      title: 'طبيب الأخطاء',
+      description: 'تخريج كلمة متعثرة واحدة على الأقل من الخزنة بإتقان تام',
+      icon: '🧠',
+      check: () => (state.vaultMasteredCount || 0) >= 1
+    },
+    {
+      id: 'voice_master',
+      title: 'فصيح اللسان',
+      description: 'الإجابة بنجاح على 5 أسئلة عبر النطق الصوتي',
+      icon: '🎙️',
+      check: () => (state.voiceCorrectTotal || 0) >= 5
+    },
+    {
+      id: 'path_explorer',
+      title: 'فاتح المسار',
+      description: 'إكمال أول درس في خريطة حفظني المتعرجة',
+      icon: '🗺️',
+      check: () => (state.hafazniLessons?.completedLessonIds || []).length >= 1
+    }
+  ];
+
+  function checkAchievements() {
+    if (!state.badges) state.badges = { unlocked: {} };
+    if (!state.badges.unlocked) state.badges.unlocked = {};
+
+    let newlyUnlocked = [];
+    ACHIEVEMENTS.forEach(ach => {
+      if (!state.badges.unlocked[ach.id]) {
+        try {
+          if (ach.check()) {
+            state.badges.unlocked[ach.id] = Date.now();
+            newlyUnlocked.push(ach);
+          }
+        } catch (e) {
+          console.error('Achievement check error:', e);
+        }
+      }
+    });
+
+    if (newlyUnlocked.length > 0) {
+      saveState();
+      renderAchievementsUI();
+      newlyUnlocked.forEach(ach => {
+        showToast(`🏅 وسام جديد مفتوح: "${ach.title}" ${ach.icon}!`, 'success', 4500);
+      });
+      triggerConfetti();
+    }
+  }
+
+  function renderAchievementsUI() {
+    if (!state.badges) state.badges = { unlocked: {} };
+    if (!state.badges.unlocked) state.badges.unlocked = {};
+
+    const unlockedCount = Object.keys(state.badges.unlocked).length;
+    const totalCount = ACHIEVEMENTS.length;
+
+    if (el.achieveBannerSub) {
+      el.achieveBannerSub.textContent = `فتحت ${unlockedCount} من ${totalCount} وسام`;
+    }
+    if (el.achieveModalCount) {
+      el.achieveModalCount.textContent = unlockedCount;
+    }
+    if (el.achieveModalTotal) {
+      el.achieveModalTotal.textContent = totalCount;
+    }
+
+    if (el.achieveMiniChips) {
+      el.achieveMiniChips.innerHTML = '';
+      ACHIEVEMENTS.forEach(ach => {
+        const isUnlocked = Boolean(state.badges.unlocked[ach.id]);
+        const chip = document.createElement('div');
+        chip.className = 'achieve-mini-chip ' + (isUnlocked ? 'unlocked' : 'locked');
+        chip.textContent = ach.icon;
+        chip.title = `${ach.title}: ${ach.description} (${isUnlocked ? 'مفتوح' : 'مغلق'})`;
+        chip.onclick = () => {
+          renderAchievementsUI();
+          openModal(el.achievementsModal);
+        };
+        el.achieveMiniChips.appendChild(chip);
+      });
+    }
+
+    if (el.achievementsGrid) {
+      el.achievementsGrid.innerHTML = '';
+      ACHIEVEMENTS.forEach(ach => {
+        const isUnlocked = Boolean(state.badges.unlocked[ach.id]);
+        const card = document.createElement('div');
+        card.className = 'achievement-card ' + (isUnlocked ? 'unlocked' : 'locked');
+
+        card.innerHTML = `
+          <div class="achievement-icon-wrap">
+            <span>${ach.icon}</span>
+            ${isUnlocked ? '<div class="achievement-check">✓</div>' : '<div class="achievement-lock">🔒</div>'}
+          </div>
+          <div class="achievement-details">
+            <h4 class="achievement-title">${ach.title}</h4>
+            <p class="achievement-desc">${ach.description}</p>
+            <span class="achievement-status-badge">
+              ${isUnlocked ? '🏅 تم الفتح' : '⏳ مقفل'}
+            </span>
+          </div>
+        `;
+        el.achievementsGrid.appendChild(card);
+      });
+    }
+  }
+
+  /* ============================================================
+     4) Feature 3: Daily 5-Min Sprint
+     ============================================================ */
+  function buildSprintWords() {
+    const list = state.vocabulary || [];
+    if (!list.length) return [];
+
+    const currentTime = now();
+    const dueWords = list.filter(w => (w.due || 0) <= currentTime);
+    const difficultWords = list.filter(w => w.status === 'difficult' || (w.wrongCount || 0) > 2);
+    const otherWords = list.filter(w => !dueWords.includes(w) && !difficultWords.includes(w));
+
+    const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+    const combined = [];
+    const seen = new Set();
+
+    [shuffle(dueWords), shuffle(difficultWords), shuffle(otherWords)].forEach(grp => {
+      grp.forEach(w => {
+        if (!seen.has(w.id) && combined.length < 10) {
+          seen.add(w.id);
+          combined.push(w);
+        }
+      });
+    });
+
+    return combined;
+  }
+
+  function renderSprintCard() {
+    if (!el.dailySprintCard) return;
+    const today = getLocalDateStr();
+    const completedToday = state.dailySprint?.lastCompletedDate === today;
+    const sprintWords = buildSprintWords();
+
+    if (el.sprintStatusBadge) {
+      if (completedToday) {
+        el.sprintStatusBadge.textContent = '✅ مكتمل اليوم';
+        el.sprintStatusBadge.className = 'sprint-status-badge completed';
+      } else {
+        el.sprintStatusBadge.textContent = '⚡ متاح الآن';
+        el.sprintStatusBadge.className = 'sprint-status-badge ready';
+      }
+    }
+
+    if (el.sprintCardSubtitle) {
+      const totalRuns = state.dailySprint?.totalCompleted || 0;
+      el.sprintCardSubtitle.textContent = completedToday
+        ? `أكملت تحدي اليوم بنجاح! إجمالي التحديات المنجزة: ${totalRuns}`
+        : `10 أسئلة سريعة مختارة بذكاء في 5 دقائق (أنجزت ${totalRuns} تحدٍ سابقاً)`;
+    }
+
+    if (el.startDailySprintBtn) {
+      if (sprintWords.length === 0) {
+        el.startDailySprintBtn.disabled = true;
+        el.startDailySprintBtn.textContent = '⚠️ أضف كلمات لبدء التحدي';
+        el.startDailySprintBtn.style.opacity = '0.6';
+      } else {
+        el.startDailySprintBtn.disabled = false;
+        el.startDailySprintBtn.textContent = completedToday ? '🔄 تدريب إضافي (تكرار التحدي)' : '✍️ ابدأ تحدي الكتابة (5 دقائق)';
+        el.startDailySprintBtn.style.opacity = '1';
+      }
+    }
+  }
+
+  let sprintQuizState = {
+    active: false,
+    processing: false,
+    isVault: false,
+    words: [],
+    currentIndex: 0,
+    correctCount: 0,
+    secondsLeft: 300,
+    timerId: null,
+    startTime: 0
+  };
+
+  function startSprintSession(isVault = false) {
+    const words = isVault ? getVaultWords() : buildSprintWords();
+    if (!words.length) {
+      showToast(isVault ? '🎉 لا توجد كلمات في الخزنة حالياً.' : '⚠️ لا توجد كلمات كافية لبدء التحدي.', 'warning');
+      return;
+    }
+
+    sprintQuizState = {
+      active: true,
+      processing: false,
+      isVault: isVault,
+      words: words,
+      currentIndex: 0,
+      correctCount: 0,
+      secondsLeft: isVault ? Math.min(300, Math.max(60, words.length * 30)) : 300,
+      timerId: null,
+      startTime: Date.now()
+    };
+
+    if (el.sprintModalTitle) {
+      el.sprintModalTitle.textContent = isVault ? '🧠 اختبار كتابة لمراجعة الخزنة' : '✍️ تحدي الـ 5 دقائق الكتابي';
+    }
+
+    if (el.sprintActiveBody) el.sprintActiveBody.style.display = 'block';
+    if (el.sprintResultBody) el.sprintResultBody.style.display = 'none';
+
+    openModal(el.dailySprintModal);
+    renderSprintQuestion();
+
+    if (sprintQuizState.timerId) clearInterval(sprintQuizState.timerId);
+    sprintQuizState.timerId = setInterval(() => {
+      sprintQuizState.secondsLeft--;
+      updateSprintTimerUI();
+      if (sprintQuizState.secondsLeft <= 0) {
+        clearInterval(sprintQuizState.timerId);
+        finishSprintSession(true);
+      }
+    }, 1000);
+    updateSprintTimerUI();
+  }
+
+  function updateSprintTimerUI() {
+    if (!el.sprintTimerText) return;
+    const mins = Math.floor(Math.max(0, sprintQuizState.secondsLeft) / 60);
+    const secs = Math.max(0, sprintQuizState.secondsLeft) % 60;
+    el.sprintTimerText.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    if (el.sprintTimerChip) {
+      el.sprintTimerChip.classList.toggle('warning', sprintQuizState.secondsLeft <= 30);
+    }
+  }
+
+  function isSprintWritingMatch(input, target) {
+    const normInput = normalizeString(input);
+    const normTarget = normalizeString(target);
+    if (!normInput) return false;
+    if (normInput === normTarget) return true;
+
+    // فحص المعاني المتعددة المفصولة بفاصلة أو سلاش
+    const variants = target.split(/[/،,؛;]+/).map(s => normalizeString(s)).filter(Boolean);
+    if (variants.includes(normInput)) return true;
+
+    // مسامحة خطأ إملائي طفيف بحرف واحد للكلمات الأطول من 4 حروف
+    if (normTarget.length >= 5 && levenshtein(normInput, normTarget) <= 1) return true;
+    for (const v of variants) {
+      if (v.length >= 5 && levenshtein(normInput, v) <= 1) return true;
+    }
+    return false;
+  }
+
+  function updateSprintPromptAndInputs(currentWord) {
+    const isEnAr = state.direction === 'en-ar';
+
+    if (el.sprintQuestionPrompt) {
+      el.sprintQuestionPrompt.textContent = isEnAr ? 'اكتب المعنى العربي للكلمة:' : 'اكتب الكلمة بالإنجليزية (English):';
+    }
+
+    if (el.sprintInput) {
+      el.sprintInput.value = '';
+      el.sprintInput.className = 'sprint-input';
+      el.sprintInput.disabled = false;
+      el.sprintInput.placeholder = isEnAr ? 'اكتب المعنى بالعربية واضغط Enter...' : 'Type English word & press Enter...';
+      setTimeout(() => el.sprintInput?.focus(), 80);
+    }
+
+    if (el.sprintCheckBtn) el.sprintCheckBtn.disabled = false;
+    if (el.sprintHintBtn) el.sprintHintBtn.disabled = false;
+    if (el.sprintSkipBtn) el.sprintSkipBtn.disabled = false;
+  }
+
+  function renderSprintQuestion() {
+    const { words, currentIndex } = sprintQuizState;
+    const currentWord = words[currentIndex];
+    if (!currentWord) {
+      finishSprintSession();
+      return;
+    }
+
+    sprintQuizState.processing = false;
+
+    if (el.sprintProgressLabel) {
+      el.sprintProgressLabel.textContent = `السؤال ${currentIndex + 1} من ${words.length}`;
+    }
+
+    const isEnAr = state.direction === 'en-ar';
+    const promptWord = isEnAr ? currentWord.english : currentWord.arabic;
+
+    if (el.sprintQuestionWord) {
+      el.sprintQuestionWord.textContent = promptWord;
+    }
+
+    if (el.sprintFeedback) {
+      el.sprintFeedback.textContent = '';
+      el.sprintFeedback.className = 'sprint-feedback';
+    }
+
+    if (el.sprintPronounceBtn) {
+      el.sprintPronounceBtn.onclick = () => speak(currentWord.english);
+    }
+
+    updateSprintPromptAndInputs(currentWord);
+  }
+
+  function checkSprintWriting() {
+    if (!sprintQuizState.active || sprintQuizState.processing) return;
+    const currentWord = sprintQuizState.words[sprintQuizState.currentIndex];
+    if (!currentWord) return;
+
+    const input = (el.sprintInput?.value || '').trim();
+    if (!input) {
+      if (el.sprintFeedback) {
+        el.sprintFeedback.textContent = '⚠️ يرجى كتابة الإجابة أولاً.';
+        el.sprintFeedback.className = 'sprint-feedback';
+      }
+      el.sprintInput?.focus();
+      return;
+    }
+
+    const isEnAr = state.direction === 'en-ar';
+    const target = isEnAr ? currentWord.arabic : currentWord.english;
+    const isMatch = isSprintWritingMatch(input, target);
+
+    if (el.sprintInput) {
+      el.sprintInput.className = `sprint-input ${isMatch ? 'correct' : 'wrong'}`;
+      el.sprintInput.disabled = true;
+    }
+
+    handleSprintAnswer(isMatch ? target : input, target, currentWord);
+  }
+
+  function showSprintHint() {
+    if (!sprintQuizState.active || sprintQuizState.processing) return;
+    const currentWord = sprintQuizState.words[sprintQuizState.currentIndex];
+    if (!currentWord) return;
+
+    const isEnAr = state.direction === 'en-ar';
+    const target = isEnAr ? currentWord.arabic : currentWord.english;
+    const firstChar = target.trim().charAt(0);
+    const len = target.trim().length;
+
+    if (el.sprintFeedback) {
+      el.sprintFeedback.textContent = `💡 تلميح: تبدأ بحرف "${firstChar}" وطول الكلمة ${len} أحرف.`;
+      el.sprintFeedback.className = 'sprint-feedback';
+    }
+    el.sprintInput?.focus();
+  }
+
+  function skipSprintQuestion() {
+    if (!sprintQuizState.active || sprintQuizState.processing) return;
+    const currentWord = sprintQuizState.words[sprintQuizState.currentIndex];
+    if (!currentWord) return;
+
+    const isEnAr = state.direction === 'en-ar';
+    const target = isEnAr ? currentWord.arabic : currentWord.english;
+
+    if (el.sprintInput) {
+      el.sprintInput.className = 'sprint-input wrong';
+      el.sprintInput.disabled = true;
+    }
+    handleSprintAnswer('', target, currentWord);
+  }
+
+  function handleSprintAnswer(selected, correct, word) {
+    if (!sprintQuizState.active || sprintQuizState.processing) return;
+    sprintQuizState.processing = true;
+
+    if (el.sprintCheckBtn) el.sprintCheckBtn.disabled = true;
+    if (el.sprintHintBtn) el.sprintHintBtn.disabled = true;
+    if (el.sprintSkipBtn) el.sprintSkipBtn.disabled = true;
+
+    const isCorrect = isSprintWritingMatch(selected, correct);
+
+    if (isCorrect) {
+      sprintQuizState.correctCount++;
+      word.correctCount = (word.correctCount || 0) + 1;
+      if ((word.wrongCount || 0) > 2 && (word.vaultStreak || 0) < 3) {
+        word.vaultStreak = (word.vaultStreak || 0) + 1;
+        if (word.vaultStreak >= 3) {
+          word.status = 'learned';
+          state.vaultMasteredCount = (state.vaultMasteredCount || 0) + 1;
+          showToast(`🎉 أتقنت كلمة "${word.english}" بنسبة 100% وتخرجت من الخزنة!`, 'success');
+          triggerConfetti();
+        }
+      }
+      if (el.sprintFeedback) {
+        el.sprintFeedback.textContent = '✅ إجابة صحيحة ومتقنة!';
+        el.sprintFeedback.className = 'sprint-feedback correct';
+      }
+    } else {
+      word.wrongCount = (word.wrongCount || 0) + 1;
+      word.status = 'difficult';
+      word.due = now();
+      if ((word.wrongCount || 0) > 2) {
+        word.vaultStreak = 0;
+      }
+      if (el.sprintFeedback) {
+        el.sprintFeedback.textContent = `❌ الإجابة الصحيحة: ${correct}`;
+        el.sprintFeedback.className = 'sprint-feedback wrong';
+      }
+    }
+
+    saveState(true);
+    updateStats();
+
+    setTimeout(() => {
+      sprintQuizState.currentIndex++;
+      if (sprintQuizState.currentIndex < sprintQuizState.words.length) {
+        renderSprintQuestion();
+      } else {
+        finishSprintSession();
+      }
+    }, isCorrect ? 750 : 1300);
+  }
+
+  function finishSprintSession(timedOut = false) {
+    if (sprintQuizState.timerId) {
+      clearInterval(sprintQuizState.timerId);
+      sprintQuizState.timerId = null;
+    }
+    sprintQuizState.active = false;
+
+    const timeSpentSeconds = Math.max(1, Math.round((Date.now() - sprintQuizState.startTime) / 1000));
+    const mins = Math.floor(timeSpentSeconds / 60);
+    const secs = timeSpentSeconds % 60;
+    const timeFormatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+    if (el.sprintStatCorrect) {
+      el.sprintStatCorrect.textContent = `${sprintQuizState.correctCount} / ${sprintQuizState.words.length}`;
+    }
+    if (el.sprintStatTime) {
+      el.sprintStatTime.textContent = timeFormatted;
+    }
+
+    if (!sprintQuizState.isVault) {
+      const today = getLocalDateStr();
+      state.dailySprint.lastCompletedDate = today;
+      state.dailySprint.totalCompleted = (state.dailySprint.totalCompleted || 0) + 1;
+      if (typeof markUserActivity === 'function') markUserActivity();
+    }
+
+    saveState(true);
+    updateAllViews();
+    checkAchievements();
+
+    if (el.sprintActiveBody) el.sprintActiveBody.style.display = 'none';
+    if (el.sprintResultBody) el.sprintResultBody.style.display = 'block';
+
+    if (sprintQuizState.correctCount >= Math.ceil(sprintQuizState.words.length * 0.7)) {
+      triggerConfetti();
+    }
+  }
+
   function exportBackup() {
     if (!state.vocabulary.length) {
       showToast('⚠️ لا توجد كلمات لحفظها في النسخة الاحتياطية.', 'warning');
@@ -3643,15 +4309,6 @@
     showToast(`🗑️ تم مسح جميع الكلمات (${count} كلمة) بنجاح.`, 'success');
   }
 
-  function updateAllViews() {
-    updateStats();
-    updateStudyView();
-    updateTestView();
-    renderWordList(state.search);
-    updateSelectionUI();
-    updateHafazniOverview();
-  }
-
   function openModal(modal) { if (modal) modal.style.display = 'flex'; }
   function closeModal(modal) { if (modal) modal.style.display = 'none'; }
 
@@ -3744,6 +4401,7 @@
     const seen = storageGet(UPDATE_KEY);
     if (seen !== APP_VERSION) {
       openModal(el.updateModal);
+      triggerConfetti();
       try { localStorage.setItem(UPDATE_KEY, APP_VERSION); } catch (_) {}
     }
   }
@@ -3962,6 +4620,14 @@
     el.exportTxtBtn?.addEventListener('click', () => {
       closeModal(el.exportWordsModal);
       downloadTextWords();
+    });
+    el.exportTsvAllBtn?.addEventListener('click', () => {
+      closeModal(el.exportWordsModal);
+      exportTsvWords('all');
+    });
+    el.exportTsvDifficultBtn?.addEventListener('click', () => {
+      closeModal(el.exportWordsModal);
+      exportTsvWords('difficult');
     });
     el.resetProgressBtn.addEventListener('click', resetProgress);
     el.resetBtn.addEventListener('click', resetAll);
@@ -4343,6 +5009,48 @@
     el.settingsAboutUsBtn?.addEventListener('click', () => openModal(el.aboutUsModal));
     el.closeAboutUsModal?.addEventListener('click', () => closeModal(el.aboutUsModal));
 
+    // أحداث الميزات الجديدة v1.5.3:
+    el.startDailySprintBtn?.addEventListener('click', () => {
+      startSprintSession(false);
+    });
+    el.closeSprintModal?.addEventListener('click', () => {
+      if (sprintQuizState.timerId) {
+        clearInterval(sprintQuizState.timerId);
+        sprintQuizState.timerId = null;
+      }
+      sprintQuizState.active = false;
+      closeModal(el.dailySprintModal);
+    });
+    el.finishSprintBtn?.addEventListener('click', () => {
+      closeModal(el.dailySprintModal);
+    });
+    el.sprintCheckBtn?.addEventListener('click', checkSprintWriting);
+    el.sprintHintBtn?.addEventListener('click', showSprintHint);
+    el.sprintSkipBtn?.addEventListener('click', skipSprintQuestion);
+
+    el.viewAchievementsBtn?.addEventListener('click', () => {
+      renderAchievementsUI();
+      openModal(el.achievementsModal);
+    });
+    el.settingsAchievementsBtn?.addEventListener('click', () => {
+      renderAchievementsUI();
+      openModal(el.achievementsModal);
+    });
+    el.closeAchievementsModal?.addEventListener('click', () => {
+      closeModal(el.achievementsModal);
+    });
+
+    el.startVaultReviewBtn?.addEventListener('click', () => {
+      startSprintSession(true);
+    });
+    el.filterVaultWordsBtn?.addEventListener('click', () => {
+      state.categoryFilter = state.categoryFilter === '__vault__' ? 'all' : '__vault__';
+      renderCategoryFilterBar();
+      renderWordList(state.search);
+      renderVaultCard();
+      saveState();
+    });
+
     window.addEventListener('click', event => {
       if (event.target === el.helpModal) closeModal(el.helpModal);
       if (event.target === el.updateModal) closeModal(el.updateModal);
@@ -4351,6 +5059,15 @@
       if (event.target === el.exportWordsModal) closeModal(el.exportWordsModal);
       if (event.target === el.aboutUsModal) closeModal(el.aboutUsModal);
       if (event.target === el.confirmActionModal) closeConfirmDialog(false);
+      if (event.target === el.dailySprintModal) {
+        if (sprintQuizState.timerId) {
+          clearInterval(sprintQuizState.timerId);
+          sprintQuizState.timerId = null;
+        }
+        sprintQuizState.active = false;
+        closeModal(el.dailySprintModal);
+      }
+      if (event.target === el.achievementsModal) closeModal(el.achievementsModal);
     });
 
     document.addEventListener('keydown', event => {
@@ -4359,6 +5076,10 @@
         if (event.key === 'Enter' && target === el.guessInput) {
           event.preventDefault();
           checkWriting();
+        }
+        if (event.key === 'Enter' && target === el.sprintInput) {
+          event.preventDefault();
+          checkSprintWriting();
         }
         return;
       }
@@ -4433,6 +5154,7 @@
     
     renderWordOfTheDay();
     updateAllViews();
+    checkAchievements();
     navigateTo('homePage', false);
 
     if (location.protocol === 'http:' || location.protocol === 'https:') {

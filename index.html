@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#2563eb">
   <meta name="description" content="بطاقات كلمات للتعلم والمراجعة والاختبارات والتدريب الصوتي ونظام حفظني الذكي">
-  <title>📚 بطاقات المفردات الذكية – v1.5.2</title>
+  <title>📚 بطاقات المفردات الذكية – v1.5.3</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
@@ -24,6 +24,26 @@
       <button type="button" class="team-header-pill-btn" id="homeAboutUsBtn" title="فريق التطوير rustipx">فريق التطوير rustipx (من نحن)</button>
     </div>
     <div class="save-indicator" id="saveStatus">💾 محفوظ تلقائيًا</div>
+  </div>
+
+  <!-- بطاقة تحدي الـ 5 دقائق اليومي (اختبار كتابي) -->
+  <div class="card daily-sprint-card" id="dailySprintCard">
+    <div class="sprint-card-header">
+      <div class="sprint-card-title-wrap">
+        <span class="sprint-card-icon">✍️</span>
+        <div>
+          <h3 class="sprint-card-title">تحدي الـ 5 دقائق الكتابي</h3>
+          <span class="sprint-card-subtitle" id="sprintCardSubtitle">10 كلمات كتابة سريعة لتثبيت الإملاء</span>
+        </div>
+      </div>
+      <span class="sprint-status-badge ready" id="sprintStatusBadge">⚡ جاهز الآن</span>
+    </div>
+    <div class="sprint-card-body" id="sprintCardBody">
+      <p class="sprint-desc" id="sprintCardDesc">اختبار كتابي سريع لـ 10 كلمات مختارة بذكاء (الكلمات المستحقة والصعبة أولاً) لتثبيت الحفظ والإملاء التام.</p>
+      <div class="sprint-card-actions">
+        <button class="ctrl-btn primary small-btn" id="startDailySprintBtn" type="button">✍️ ابدأ تحدي الكتابة الآن</button>
+      </div>
+    </div>
   </div>
 
   <!-- بطاقة كلمة اليوم -->
@@ -69,9 +89,9 @@
   <div class="card upload-card">
     <div class="upload-area" id="uploadArea">
       <div class="upload-icon">📂</div>
-      <div class="upload-text">📁 اضغط لاختيار ملف .txt أو .csv</div>
-      <div class="upload-hint">✨ كل سطر: كلمة إنجليزية, ترجمتها العربية (مع تصنيف اختياري)</div>
-      <input type="file" id="fileInput" accept=".txt,.csv,.text">
+      <div class="upload-text">📁 اضغط لاختيار ملف .txt أو .csv أو .tsv</div>
+      <div class="upload-hint">✨ يدعم ملفات Anki و Quizlet (TSV) وملفات النصوص CSV و TXT</div>
+      <input type="file" id="fileInput" accept=".txt,.csv,.tsv,.text">
     </div>
   </div>
 
@@ -85,6 +105,21 @@
   <div class="mastery-box-wrap">
     <div class="mastery-bar"><div class="mastery-fill" id="masteryFill"></div></div>
     <p class="mastery-text">🏆 نسبة الإتقان الكلية: <span id="masteryPercent">0%</span></p>
+  </div>
+
+  <!-- شريط الشارات والإنجازات -->
+  <div class="card achievements-banner-card" id="achievementsBannerCard">
+    <div class="achieve-banner-header">
+      <div class="achieve-banner-info">
+        <span class="achieve-banner-icon">🏅</span>
+        <div>
+          <h3 class="achieve-banner-title">الشارات والإنجازات</h3>
+          <span class="achieve-banner-sub" id="achieveBannerSub">0 من 9 أوسمة مفتوحة</span>
+        </div>
+      </div>
+      <button type="button" class="ctrl-btn small-btn" id="viewAchievementsBtn">عرض الكل 🏅</button>
+    </div>
+    <div class="achieve-mini-chips" id="achieveMiniChips"></div>
   </div>
 
   <div class="quick-actions">
@@ -406,10 +441,10 @@
   </div>
 
   <div class="control-group compact-controls">
-    <button class="ctrl-btn" id="importTextBtn" type="button">📥 استيراد TXT/CSV</button>
+    <button class="ctrl-btn" id="importTextBtn" type="button">📥 استيراد TXT/CSV/TSV</button>
     <button class="ctrl-btn" id="exportBackupBtn" type="button">💾 نسخة احتياطية</button>
     <button class="ctrl-btn" id="importBackupBtn" type="button">📤 استرجاع نسخة</button>
-    <input type="file" id="textImportInput" accept=".txt,.csv,.text">
+    <input type="file" id="textImportInput" accept=".txt,.csv,.tsv,.text">
     <input type="file" id="backupInput" accept=".json,application/json">
   </div>
 
@@ -418,6 +453,25 @@
     <button class="ctrl-btn" id="clearSelectionBtn" type="button">⬜ إلغاء التحديد</button>
     <button class="ctrl-btn danger-btn" id="deleteSelectedBtn" type="button" title="حذف الكلمات المحددة فقط">🗑️ حذف المحدد</button>
     <button class="ctrl-btn primary" id="sendToHafazniBtn" type="button">🧠 حفظني <span id="selectedWordsCount" class="selected-count-badge">0</span></button>
+  </div>
+
+  <!-- بطاقة خزنة مراجعة الأخطاء الذكية (Mistake Bank / Weak Words Vault) -->
+  <div class="card vault-card" id="vaultCard">
+    <div class="vault-card-header">
+      <div class="vault-title-wrap">
+        <span class="vault-icon">🧠</span>
+        <div>
+          <h3 class="vault-title">خزنة مراجعة الأخطاء الذكية</h3>
+          <span class="vault-subtitle" id="vaultSubtitle">الكلمات المتكررة الخطأ تتجمع هنا للإتقان التام</span>
+        </div>
+      </div>
+      <span class="vault-counter-badge" id="vaultCounterBadge">0 كلمات</span>
+    </div>
+    <p class="vault-desc">تُجمع الكلمات التي تكرر خطؤك فيها مرتين فأكثر تلقائياً هنا، لتتدرب عليها بجدولة مكثفة حتى تتقنها بنسبة 100% (3 إجابات صحيحة متتالية).</p>
+    <div class="vault-actions">
+      <button type="button" class="ctrl-btn primary small-btn" id="startVaultReviewBtn">🎯 راجع كلمات الخزنة الآن</button>
+      <button type="button" class="ctrl-btn small-btn" id="filterVaultWordsBtn">👁️ عرض كلمات الخزنة فقط</button>
+    </div>
   </div>
 
   <!-- شريط تصنيفات وفلترة الكلمات -->
@@ -489,6 +543,12 @@
   </div>
 
   <div class="settings-group">
+    <label class="settings-label">🏅 الشارات والإنجازات</label>
+    <p class="settings-hint" style="margin-top:0; margin-bottom:12px;">تابع تقدمك وحقق كل الأوسمة مع مواظبتك على الحفظ والتحديات.</p>
+    <button class="ctrl-btn" id="settingsAchievementsBtn" type="button">🏅 استعراض الشارات والإنجازات</button>
+  </div>
+
+  <div class="settings-group">
     <label class="settings-label">🎨 المظهر العام</label>
     <button class="ctrl-btn" id="darkToggleBtn" type="button">🌙 الوضع الداكن / الفاتح</button>
   </div>
@@ -505,7 +565,7 @@
       <input type="email" name="email" placeholder="📧 بريدك الإلكتروني *" required>
       <textarea name="message" rows="4" placeholder="✍️ اكتب رأيك، اقتراحك، أو تجربتك مع التطبيق..." required></textarea>
       <input type="hidden" name="access_key" value="c1d4a19f-7583-47ee-a733-db6276493109">
-      <input type="hidden" name="subject" value="رأي جديد من تطبيق الكلمات v1.5.2">
+      <input type="hidden" name="subject" value="رأي جديد من تطبيق الكلمات v1.5.3">
       <button type="submit" class="ctrl-btn primary">📨 إرسال الرأي والملاحظات</button>
     </form>
     <div id="feedbackSuccess" class="form-message success" style="display:none;"></div>
@@ -514,7 +574,7 @@
 
   <div class="settings-group">
     <label class="settings-label">ℹ️ معلومات الإصدار</label>
-    <p class="version-text">الإصدار الحالي: <strong>1.5.2 🚀</strong></p>
+    <p class="version-text">الإصدار الحالي: <strong>1.5.3 🚀</strong></p>
     <button class="ctrl-btn" id="viewFeaturesBtn" type="button">📋 عرض ميزات وتحديثات هذا الإصدار</button>
   </div>
 
@@ -551,7 +611,7 @@
   <button class="nav-btn" data-page="settingsPage"><span class="nav-icon">⚙️</span><span class="nav-label">الإعدادات</span></button>
 </nav>
 
-<div class="version-badge">v1.5.2</div>
+<div class="version-badge">v1.5.3</div>
 
 <canvas id="confettiCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;display:none;"></canvas>
 
@@ -673,6 +733,22 @@
     </div>
 
     <div class="export-options-grid">
+      <button type="button" class="export-option-card" id="exportTsvAllBtn">
+        <span class="export-card-icon">📋</span>
+        <div class="export-card-info">
+          <strong>تصدير TSV (متوافق مع Anki / Quizlet)</strong>
+          <span>ملف مجدول لكل الكلمات جاهز للاستيراد المباشر في Anki أو Quizlet</span>
+        </div>
+      </button>
+
+      <button type="button" class="export-option-card" id="exportTsvDifficultBtn">
+        <span class="export-card-icon">⚡</span>
+        <div class="export-card-info">
+          <strong>تصدير الكلمات الصعبة فقط (TSV)</strong>
+          <span>ملف مجدول خاص بالكلمات المتعثرة للتدريب المركز في Anki و Quizlet</span>
+        </div>
+      </button>
+
       <button type="button" class="export-option-card" id="exportPdfAllBtn">
         <span class="export-card-icon">📑</span>
         <div class="export-card-info">
@@ -769,50 +845,120 @@
     <div class="update-header">
       <div class="update-badge-icon">🚀</div>
       <div>
-        <h2 id="updateTitle" style="margin:0; font-size:1.3rem;">تحديثات وميزات الإصدار 1.5.2</h2>
-        <span class="version-subtitle">الترقية الشاملة لاستقرار المسارات والتعلم التكيفي</span>
+        <h2 id="updateTitle" style="margin:0; font-size:1.3rem;">تحديثات وميزات الإصدار 1.5.3</h2>
+        <span class="version-subtitle">الترقية الكبرى للتحديات، الأوسمة، وبنك الأخطاء</span>
       </div>
     </div>
     <div class="update-body">
       <div class="update-section">
-        <h3 class="update-section-title">🗺️ استقلالية تامة للمسارات والدروس</h3>
+        <h3 class="update-section-title">📋 استيراد وتصدير Anki و Quizlet (TSV)</h3>
         <ul class="update-list">
-          <li><strong>معرفات فريدة مستقلة:</strong> كل مسار ودرس يمتلك معرفًا خاصًا يمنع توارث حالة الإكمال أو الخلط عند إنشاء مسارات جديدة.</li>
-          <li><strong>حفظ موثوق للتقدم:</strong> الاحتفاظ التام بسجل الدروس المكتملة دون أي تعارض.</li>
+          <li><strong>تصدير TSV مجدول:</strong> تصدير كافة الكلمات أو الكلمات الصعبة فقط بضغطة زر متوافقة 100% مع Anki و Quizlet.</li>
+          <li><strong>استيراد ذكي:</strong> دعم استيراد ملفات TSV المفصولة بـ Tab والدمج السلس مع الكلمات الحالية دون تكرار.</li>
         </ul>
       </div>
 
       <div class="update-section">
-        <h3 class="update-section-title">🔄 تغيير وتعيين حالة الكلمة يدويًا</h3>
+        <h3 class="update-section-title">🏅 نظام الشارات والأوسمة التحفيزية</h3>
         <ul class="update-list">
-          <li><strong>تعديل فوري من القائمة والبطاقة:</strong> إمكانية تحويل أي كلمة إلى (جديدة / صعبة / محفوظة) بنقرة زر أو عبر نافذة التعديل.</li>
-          <li><strong>مزامنة فورية:</strong> تحديث الإحصائيات والحفظ الفوري في الذاكرة دون الحاجة لإعادة التحميل.</li>
+          <li><strong>9 أوسمة متدرجة:</strong> أوسمة للإتقان، الستريك المتواصل، تحدي السرعة، النطق الصوتي، وتخريج الكلمات المتعثرة.</li>
+          <li><strong>احتفال فوري:</strong> ظهور إشعار بهيج ومؤثر احتفالي فور فك قفل أي وسام جديد.</li>
         </ul>
       </div>
 
       <div class="update-section">
-        <h3 class="update-section-title">🧠 نظام حفظني التكيفي الذكي</h3>
+        <h3 class="update-section-title">⚡ تحدي الـ 5 دقائق اليومي (Daily Sprint)</h3>
         <ul class="update-list">
-          <li><strong>تكرار ديناميكي للكلمات الصعبة:</strong> الكلمات التي تخطئ فيها تتكرر سريعًا حتى تثبت في الذاكرة.</li>
-          <li><strong>تخريج تلقائي للمتقن:</strong> الكلمات المتقنة يتم تخريجها بسلاسة لمنع التكرار غير الضروري.</li>
+          <li><strong>مراجعة سريعة ذكية:</strong> اختيار تلقائي لأهم 10 كلمات مستحقة وصعبة لمراجعتها سريعاً مع مؤقت تنازلي.</li>
+          <li><strong>تثبيت فوري للنشاط:</strong> يربط تقدمك بالستريك اليومي ويوفر إحصائيات دقيقة للإنجاز.</li>
         </ul>
       </div>
 
       <div class="update-section">
-        <h3 class="update-section-title">📄 تصدير وطباعة PDF للكلمات</h3>
+        <h3 class="update-section-title">🧠 خزنة مراجعة الأخطاء (Weak Words Vault)</h3>
         <ul class="update-list">
-          <li><strong>طباعة PDF منسقة:</strong> تصدير كافة الكلمات أو الكلمات الصعبة فقط كجدول أنيق جاهز للطباعة والمذاكرة الورقية.</li>
-          <li><strong>خيارات تصدير متعددة:</strong> ملف PDF أو نصي TXT أو نسخة احتياطية كاملة.</li>
-        </ul>
-      </div>
-
-      <div class="update-section">
-        <h3 class="update-section-title">🎉 تأثير احتفالي مبهج (Confetti)</h3>
-        <ul class="update-list">
-          <li><strong>تشجيع فوري:</strong> احتفال حماسي بالألوان عند إتمام الدرس أو محطة التقييم في مسار حفظني الذكي.</li>
+          <li><strong>رصد تلقائي للأخطاء:</strong> أي كلمة يخطئ فيها المستخدم مرتين أو أكثر تنتقل تلقائياً إلى الخزنة.</li>
+          <li><strong>تخريج بالإتقان التام:</strong> نظام 3 إجابات صحيحة متتالية لتخريج الكلمة من الخزنة إلى قائمة المحفوظات بنجاح.</li>
         </ul>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- نافذة تحدي الـ 5 دقائق اليومي والمراجعة السريعة -->
+<div id="dailySprintModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="sprintModalTitle">
+  <div class="modal-content sprint-modal-content">
+    <button class="close-modal" id="closeSprintModal" aria-label="إغلاق">×</button>
+    
+    <div class="sprint-modal-header">
+      <div class="sprint-modal-icon">⚡</div>
+      <div class="sprint-modal-titles">
+        <h3 id="sprintModalTitle" style="margin:0; font-size:1.25rem; font-weight:800;">تحدي الـ 5 دقائق اليومي</h3>
+        <span class="sprint-progress-label" id="sprintProgressLabel">السؤال 1 من 10</span>
+      </div>
+      <div class="sprint-timer-chip" id="sprintTimerChip">
+        <span class="sprint-timer-icon">⏱️</span>
+        <span id="sprintTimerText">05:00</span>
+      </div>
+    </div>
+
+    <div class="sprint-active-body" id="sprintActiveBody">
+      <div class="sprint-question-card">
+        <div class="sprint-question-top">
+          <span class="sprint-question-prompt" id="sprintQuestionPrompt">اكتب الترجمة الصحيحة للكلمة:</span>
+          <button type="button" class="pronounce-btn" id="sprintPronounceBtn" title="نطق الكلمة" aria-label="نطق">🔊</button>
+        </div>
+        <div class="sprint-question-word" id="sprintQuestionWord">Inspiration</div>
+      </div>
+
+      <!-- واجهة الاختبار الكتابي فقط -->
+      <div class="sprint-writing-panel" id="sprintWritingPanel">
+        <div class="sprint-input-wrapper">
+          <input type="text" id="sprintInput" class="sprint-input" placeholder="اكتب الإجابة واضغط Enter..." autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <div class="sprint-actions-row">
+          <button type="button" class="ctrl-btn primary" id="sprintCheckBtn">تحقق ↵</button>
+          <button type="button" class="ctrl-btn" id="sprintHintBtn" title="إظهار تلميح">💡 تلميح</button>
+          <button type="button" class="ctrl-btn text-btn" id="sprintSkipBtn" title="تخطي الكلمة">تخطي ⏩</button>
+        </div>
+      </div>
+
+      <div class="sprint-feedback" id="sprintFeedback"></div>
+    </div>
+
+    <div class="sprint-result-body" id="sprintResultBody" style="display:none;">
+      <div class="sprint-result-icon">🏆</div>
+      <h3 class="sprint-result-title">أحسنت! أتممت التحدي بنجاح</h3>
+      <p class="sprint-result-desc">لقد عززت ذاكرتك وثبتّ الكلمات المختارة بقوة اليوم.</p>
+      <div class="sprint-stats-summary">
+        <div class="sprint-stat-box">
+          <span class="sprint-stat-val" id="sprintStatCorrect">10/10</span>
+          <span class="sprint-stat-lbl">إجابات صحيحة</span>
+        </div>
+        <div class="sprint-stat-box">
+          <span class="sprint-stat-val" id="sprintStatTime">01:45</span>
+          <span class="sprint-stat-lbl">الوقت المستغرق</span>
+        </div>
+      </div>
+      <button type="button" class="ctrl-btn primary" id="finishSprintBtn" style="width:100%; margin-top:16px;">رائع، العودة للرئيسية 🚀</button>
+    </div>
+  </div>
+</div>
+
+<!-- نافذة الأوسمة والإنجازات (Badges & Achievements) -->
+<div id="achievementsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="achievementsTitle">
+  <div class="modal-content achievements-modal-content">
+    <button class="close-modal" id="closeAchievementsModal" aria-label="إغلاق">×</button>
+    
+    <div class="achieve-modal-header">
+      <div class="achieve-modal-icon">🏅</div>
+      <div>
+        <h2 id="achievementsTitle" style="margin:0; font-size:1.3rem; font-weight:800;">سجل الشارات والإنجازات</h2>
+        <span class="achieve-modal-sub">حققت <strong id="achieveModalCount">0</strong> من <strong id="achieveModalTotal">9</strong> أوسمة تحفيزية</span>
+      </div>
+    </div>
+
+    <div class="achievements-grid" id="achievementsGrid"></div>
   </div>
 </div>
 

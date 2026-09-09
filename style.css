@@ -1,4 +1,4 @@
-/* style.css – v1.5.2 */
+/* style.css – v1.5.3 */
 :root {
   --bg: #f4f7fb;
   --surface: #ffffff;
@@ -4259,6 +4259,592 @@ body.dark .app-toast.warning {
     padding: 20px;
   }
 }
+
+/* ============================================================
+   v1.5.3 FEATURES: DAILY SPRINT, BADGES, AND WEAK WORDS VAULT
+   ============================================================ */
+
+/* 1) Daily 5-Min Sprint Card */
+.daily-sprint-card {
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.daily-sprint-card:hover {
+  box-shadow: var(--shadow-md);
+}
+.sprint-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.sprint-card-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sprint-card-icon {
+  font-size: 1.6rem;
+  background: #fef3c7;
+  color: #d97706;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+body.dark .sprint-card-icon {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fde68a;
+}
+.sprint-card-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.sprint-card-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.sprint-status-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.sprint-status-badge.ready {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--border-focus);
+}
+.sprint-status-badge.completed {
+  background: var(--green-bg);
+  color: var(--green-text);
+  border: 1px solid var(--green-border);
+}
+.sprint-desc {
+  margin: 0 0 14px 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.sprint-card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* 2) Daily Sprint Modal */
+.sprint-modal-content {
+  max-width: 520px;
+  width: 95%;
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.sprint-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.sprint-modal-icon {
+  font-size: 1.7rem;
+  background: #fef3c7;
+  color: #d97706;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+body.dark .sprint-modal-icon {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fde68a;
+}
+.sprint-modal-titles {
+  flex: 1;
+}
+.sprint-progress-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.sprint-timer-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--stat-bg);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.sprint-timer-chip.warning {
+  background: var(--red-bg);
+  border-color: var(--red-border);
+  color: var(--red-text);
+  animation: pulse 1s infinite alternate;
+}
+.sprint-question-card {
+  background: var(--stat-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.sprint-question-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.sprint-question-prompt {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.sprint-question-word {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+.sprint-writing-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.sprint-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+.sprint-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-family: inherit;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: all var(--transition);
+  box-sizing: border-box;
+  text-align: center;
+}
+.sprint-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.sprint-input.correct {
+  border-color: var(--green-border) !important;
+  background: var(--green-bg) !important;
+  color: var(--green-text) !important;
+}
+.sprint-input.wrong {
+  border-color: var(--red-border) !important;
+  background: var(--red-bg) !important;
+  color: var(--red-text) !important;
+}
+.sprint-actions-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.sprint-actions-row .ctrl-btn {
+  flex: 1;
+}
+.sprint-actions-row .ctrl-btn.primary {
+  flex: 2;
+}
+.sprint-feedback {
+  min-height: 24px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 4px;
+}
+.sprint-feedback.correct {
+  color: var(--green-text);
+}
+.sprint-feedback.wrong {
+  color: var(--red-text);
+}
+.sprint-result-body {
+  text-align: center;
+  padding: 10px 0;
+}
+.sprint-result-icon {
+  font-size: 3.5rem;
+  margin-bottom: 10px;
+}
+.sprint-result-title {
+  margin: 0 0 6px 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.sprint-result-desc {
+  margin: 0 0 20px 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+.sprint-stats-summary {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.sprint-stat-box {
+  background: var(--stat-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 20px;
+  min-width: 120px;
+}
+.sprint-stat-val {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--primary);
+}
+.sprint-stat-lbl {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* 3) Achievements Banner & Grid */
+.achievements-banner-card {
+  margin-top: 14px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  box-shadow: var(--shadow);
+}
+.achieve-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.achieve-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.achieve-banner-icon {
+  font-size: 1.5rem;
+  background: #fef9c3;
+  color: #ca8a04;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+body.dark .achieve-banner-icon {
+  background: rgba(202, 138, 4, 0.2);
+  color: #fef08a;
+}
+.achieve-banner-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.achieve-banner-sub {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.achieve-mini-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.achieve-mini-chip {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background: var(--stat-bg);
+  border: 1px solid var(--border);
+  transition: transform var(--transition);
+  cursor: pointer;
+}
+.achieve-mini-chip.unlocked {
+  background: #fef3c7;
+  border-color: #fde68a;
+  transform: scale(1.05);
+}
+body.dark .achieve-mini-chip.unlocked {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.achieve-mini-chip.locked {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+/* Achievements Modal */
+.achievements-modal-content {
+  max-width: 600px;
+  width: 95%;
+  max-height: 85vh;
+  overflow-y: auto;
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.achieve-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.achieve-modal-icon {
+  font-size: 2rem;
+  background: #fef9c3;
+  color: #ca8a04;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+body.dark .achieve-modal-icon {
+  background: rgba(202, 138, 4, 0.2);
+  color: #fef08a;
+}
+.achieve-modal-sub {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+.achievements-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 520px) {
+  .achievements-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.achievement-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  transition: all var(--transition);
+}
+.achievement-card.unlocked {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.4), var(--surface));
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
+}
+body.dark .achievement-card.unlocked {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), var(--surface));
+  border-color: rgba(245, 158, 11, 0.5);
+}
+.achievement-card.locked {
+  opacity: 0.55;
+}
+.achievement-icon-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--stat-bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+.achievement-card.unlocked .achievement-icon-wrap {
+  background: #fef3c7;
+}
+body.dark .achievement-card.unlocked .achievement-icon-wrap {
+  background: rgba(245, 158, 11, 0.25);
+}
+.achievement-check {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: #10b981;
+  color: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.achievement-lock {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 11px;
+}
+.achievement-details {
+  flex: 1;
+}
+.achievement-title {
+  margin: 0 0 3px 0;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.achievement-desc {
+  margin: 0 0 6px 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.achievement-status-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.achievement-card.unlocked .achievement-status-badge {
+  color: #d97706;
+}
+body.dark .achievement-card.unlocked .achievement-status-badge {
+  color: #fde68a;
+}
+
+/* 4) Weak Words Vault (Mistake Bank) */
+.vault-card {
+  margin-top: 14px;
+  margin-bottom: 14px;
+  background: var(--surface);
+  border: 1.5px dashed var(--border-focus);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+}
+.vault-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.vault-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vault-icon {
+  font-size: 1.5rem;
+  background: var(--red-bg);
+  color: var(--red-text);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+body.dark .vault-icon {
+  background: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+}
+.vault-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.vault-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.vault-counter-badge {
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.vault-counter-badge.has-words {
+  background: var(--red-bg);
+  color: var(--red-text);
+  border: 1px solid var(--red-border);
+}
+.vault-counter-badge.empty {
+  background: var(--green-bg);
+  color: var(--green-text);
+  border: 1px solid var(--green-border);
+}
+.vault-desc {
+  margin: 0 0 14px 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.vault-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.word-vault-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--red-bg);
+  color: var(--red-text);
+  border: 1px solid var(--red-border);
+}
+body.dark .word-vault-tag {
+  background: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
 
 
 
