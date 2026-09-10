@@ -3304,9 +3304,14 @@ body.dark .share-copy-toast {
 
 @media (max-width: 650px) {
   .page {
-    padding: 14px 10px 80px;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 12px calc(96px + env(safe-area-inset-bottom, 16px));
     max-width: 100%;
     box-sizing: border-box;
+  }
+
+  /* إخفاء شارة الإصدار العائمة على الموبايل لمنع حجب الأزرار */
+  .version-badge {
+    display: none !important;
   }
 
   .header h1, .header h2 {
@@ -3336,23 +3341,49 @@ body.dark .share-copy-toast {
 
   .quick-actions {
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 6px;
   }
 
   .quick-btn {
     padding: 10px 4px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     gap: 4px;
+    min-height: 60px;
+    justify-content: center;
   }
 
   .quick-icon {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
   }
 
-  .card {
-    padding: 14px 12px;
+  /* بطاقات عصرية متناسقة ومساحات مريحة */
+  .card,
+  .daily-sprint-card,
+  .word-of-the-day-card,
+  .achievements-banner-card,
+  .vault-card,
+  .upload-card {
+    padding: 15px 14px;
     border-radius: var(--radius-sm);
     margin-bottom: 12px;
+    box-sizing: border-box;
+  }
+
+  /* بطاقة كلمة اليوم - تنظيم أزرار الإجراءات في شبكة 2x2 متوازنة */
+  .wotd-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+
+  .wotd-actions .ctrl-btn {
+    min-width: 0;
+    width: 100%;
+    font-size: 0.8rem;
+    padding: 9px 6px;
+    text-align: center;
+    justify-content: center;
   }
 
   .flashcard {
@@ -3369,38 +3400,56 @@ body.dark .share-copy-toast {
     gap: 6px;
   }
 
+  /* أزرار الاستيراد والنسخ الاحتياطي في عمودين مرتبين */
   .compact-controls {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 6px;
   }
 
-  .compact-controls .ctrl-btn {
-    padding: 8px 4px;
-    font-size: 0.76rem;
-    min-height: 40px;
-    white-space: nowrap;
+  .compact-controls #importTextBtn {
+    grid-column: span 2;
   }
 
+  .compact-controls .ctrl-btn {
+    padding: 8px 6px;
+    font-size: 0.78rem;
+    min-height: 40px;
+    white-space: normal;
+    line-height: 1.25;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* شريط تحديد الكلمات - شبكة متناسقة وزر حفظني عريض */
   .selection-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
     padding: 10px;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 6px;
+    box-sizing: border-box;
   }
 
   .selection-bar #selectAllBtn,
-  .selection-bar #clearSelectionBtn {
-    flex: 1;
+  .selection-bar #clearSelectionBtn,
+  .selection-bar #deleteSelectedBtn {
+    width: 100%;
     min-height: 38px;
-    font-size: 0.78rem;
-    padding: 6px 8px;
+    font-size: 0.75rem;
+    padding: 6px 4px;
+    margin: 0;
+    justify-content: center;
+    text-align: center;
   }
 
   .selection-bar #sendToHafazniBtn {
+    grid-column: span 3;
     width: 100%;
     justify-content: center;
-    min-height: 40px;
-    margin-inline-start: 0;
+    min-height: 42px;
+    margin: 2px 0 0 0;
+    font-weight: 800;
+    font-size: 0.92rem;
   }
 
   .add-word-form {
@@ -3413,11 +3462,13 @@ body.dark .share-copy-toast {
     width: 100%;
     min-width: 100%;
     box-sizing: border-box;
+    font-size: 16px !important;
   }
 
   .add-word-form #addWordBtn {
     width: 100%;
-    min-height: 42px;
+    min-height: 44px;
+    font-size: 0.92rem;
   }
 
   .ctrl-btn {
@@ -3435,30 +3486,42 @@ body.dark .share-copy-toast {
     gap: 8px;
   }
 
+  /* ترتيب أزرار الكلمة بشكل احترافي ومتجاوب */
   .word-actions {
-    gap: 5px;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr 34px;
+    gap: 6px;
+    align-items: center;
+    width: 100%;
   }
 
   .status-btn, .edit-btn, .share-btn {
-    font-size: 0.75rem;
-    padding: 4px 6px;
+    font-size: 0.74rem;
+    padding: 4px 4px;
     min-height: 34px;
+    width: 100%;
+    text-align: center;
+    justify-content: center;
   }
 
   .delete-btn {
     width: 34px;
     height: 34px;
+    padding: 0;
+    justify-self: center;
   }
 
   .bottom-nav {
     justify-content: space-around;
-    padding: 6px 2px max(8px, env(safe-area-inset-bottom));
+    padding: 6px 4px max(10px, env(safe-area-inset-bottom, 10px));
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
   }
 
   .nav-btn {
     flex: 1;
     padding: 4px 2px;
-    min-height: 48px;
+    min-height: 46px;
   }
 
   .nav-icon {
@@ -3469,10 +3532,27 @@ body.dark .share-copy-toast {
     font-size: 0.72rem;
   }
 
-  .modal-content {
-    max-width: 95vw;
-    max-height: 88vh;
-    padding: 18px 14px;
+  /* ضبط النوافذ المنبثقة لتستغل الشاشة بمرونة دون الخروج عن الإطار */
+  .modal {
+    padding: 12px 10px;
+    padding-top: max(14px, env(safe-area-inset-top, 14px));
+    padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
+  }
+
+  .modal-content,
+  .sprint-modal-content,
+  .achievements-modal-content,
+  .about-modal-content,
+  .help-modal-content,
+  .update-modal-content,
+  .edit-word-modal-content,
+  .confirm-modal-content {
+    max-width: 100%;
+    width: 100%;
+    max-height: calc(100vh - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    padding: 20px 14px;
+    border-radius: var(--radius);
+    box-sizing: border-box;
   }
 
   /* تحسينات تخطيط حفظني ومسار الدروس المتعرج للشاشات الصغيرة */
@@ -4911,14 +4991,164 @@ body.dark .word-vault-tag {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
-    padding: 12px;
+    padding: 12px 14px;
+    top: max(12px, env(safe-area-inset-top, 12px));
+    width: calc(100% - 20px);
   }
+
   .update-banner-actions {
     justify-content: flex-end;
   }
+
+  /* تحسين بطاقة تحدي الـ 5 دقائق اليومي للشاشات الصغيرة */
+  .daily-sprint-card {
+    padding: 14px 12px;
+  }
+
+  .sprint-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .sprint-card-title-wrap {
+    width: 100%;
+  }
+
+  .sprint-status-badge {
+    align-self: flex-start;
+  }
+
+  .sprint-card-actions {
+    width: 100%;
+  }
+
+  .sprint-card-actions button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  /* تحسين نافذة التحدي الكتابي */
+  .sprint-modal-content {
+    padding: 16px 12px;
+  }
+
+  .sprint-question-word {
+    font-size: 1.5rem;
+  }
+
+  .sprint-input {
+    font-size: 16px !important;
+    padding: 12px 10px;
+  }
+
+  .sprint-stats-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .sprint-stat-box {
+    min-width: 0;
+    padding: 10px 6px;
+    text-align: center;
+  }
+
+  .sprint-stat-val {
+    font-size: 1.3rem;
+  }
+
+  .sprint-actions-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sprint-actions-row .ctrl-btn {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  /* تحسين بطاقة خزنة الأخطاء */
+  .vault-card {
+    padding: 14px 12px;
+  }
+
+  .vault-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .vault-actions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .vault-actions button {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+  }
+
+  /* نافذة الأوسمة والإنجازات */
+  .achievements-modal-content {
+    padding: 16px 12px;
+  }
+
+  .achievements-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .achievement-card {
+    padding: 12px 10px;
+    gap: 10px;
+  }
+
+  /* نافذة من نحن ومعلومات الفريق */
+  .about-modal-content {
+    padding: 16px 12px;
+  }
+
+  .dev-card {
+    padding: 14px 12px;
+  }
+
+  .dev-card-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  /* إشعار التوست الفوري - ملاءمة تامة لجميع الهواتف */
+  .app-toast {
+    top: max(14px, env(safe-area-inset-top, 14px));
+    max-width: calc(100vw - 24px);
+    padding: 10px 18px;
+    font-size: 0.84rem;
+    white-space: normal;
+    text-align: center;
+    border-radius: 14px;
+    box-sizing: border-box;
+  }
 }
 
+/* منع تقريب الشاشة التلقائي المزعج في سفاري على جميع الهواتف */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="search"],
+  input[type="time"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 
-
-
-
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
