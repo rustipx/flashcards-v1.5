@@ -1603,6 +1603,8 @@
     if (!word) return;
     const nextStatus = word.status === 'new' ? 'difficult' : (word.status === 'difficult' ? 'learned' : 'new');
     setWordStatus(word, nextStatus);
+    const statusLabels = { 'new': 'جديدة 🆕', 'difficult': 'صعبة ⚠️', 'learned': 'متقنة ✅' };
+    showToast(`تم تعيين حالة "${word.english}" إلى: ${statusLabels[nextStatus] || nextStatus}`, 'info', 1800);
   }
 
   async function deleteWord(wordOrId) {
@@ -2073,6 +2075,8 @@
     });
     saveState(true);
     renderWordList(state.search);
+    const selCount = state.vocabulary.filter(w => w.selected).length;
+    showToast(`☑️ تم تحديد ${selCount} كلمة`, 'info', 1800);
   }
 
   function clearSelection() {
@@ -2080,6 +2084,7 @@
     state.selectedIds = [];
     saveState(true);
     renderWordList(state.search);
+    showToast('⚪ تم إلغاء تحديد جميع الكلمات', 'info', 1600);
   }
 
   function switchHafazniTab(tab) {

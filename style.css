@@ -4256,33 +4256,54 @@ body.dark .github-btn:hover {
 /* نظام التوست الشامل للتنبيهات الفورية (App Toast Notification) */
 .app-toast {
   position: fixed;
-  bottom: 80px;
+  top: max(16px, env(safe-area-inset-top, 16px));
+  bottom: auto;
   left: 50%;
-  transform: translateX(-50%) translateY(30px);
+  transform: translate(-50%, -12px);
   background: var(--card-bg);
   color: var(--text);
-  border: 1.5px solid var(--border);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
   border-radius: var(--radius-pill);
-  padding: 10px 22px;
-  font-size: 0.9rem;
+  padding: 6px 14px;
+  font-size: 0.82rem;
   font-weight: 700;
+  line-height: 1.35;
   z-index: 10000;
   opacity: 0;
   pointer-events: none;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  white-space: nowrap;
-  max-width: 90vw;
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: normal;
+  width: auto;
+  width: fit-content;
+  max-width: calc(100vw - 32px);
+  height: auto;
+  min-height: unset;
+  max-height: unset;
   text-align: center;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
 }
 
 .app-toast.visible {
-  transform: translateX(-50%) translateY(0);
+  transform: translate(-50%, 0);
   opacity: 1;
   pointer-events: auto;
+}
+
+.app-toast.info {
+  border-color: #3b82f6;
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+body.dark .app-toast.info {
+  background: #172554;
+  border-color: #3b82f6;
+  color: #93c5fd;
 }
 
 .app-toast.success {
@@ -5124,15 +5145,21 @@ body.dark .word-vault-tag {
     gap: 10px;
   }
 
-  /* إشعار التوست الفوري - ملاءمة تامة لجميع الهواتف */
+  /* إشعار التوست الفوري - حجم مدمج ومضبوط على قدر النص تماماً */
   .app-toast {
     top: max(14px, env(safe-area-inset-top, 14px));
-    max-width: calc(100vw - 24px);
-    padding: 10px 18px;
-    font-size: 0.84rem;
+    bottom: auto !important;
+    max-width: calc(100vw - 32px) !important;
+    width: fit-content !important;
+    height: auto !important;
+    min-height: unset !important;
+    max-height: unset !important;
+    padding: 6px 14px !important;
+    font-size: 0.8rem !important;
+    line-height: 1.35 !important;
     white-space: normal;
     text-align: center;
-    border-radius: 14px;
+    border-radius: var(--radius-pill) !important;
     box-sizing: border-box;
   }
 }
