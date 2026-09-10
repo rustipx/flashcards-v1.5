@@ -2735,7 +2735,10 @@
     state.hafazni.activeLessonId = node.id;
     state.hafazni.activeLessonIndex = node.index;
     state.hafazni.isCheckpoint = (node.type === 'checkpoint');
+    navigateTo('hafazniPage');
     initHafazniSession(node.ids);
+    const title = node.type === 'checkpoint' ? '🏆 التقييم الشامل' : `🚀 الدرس ${node.lessonNumber}`;
+    showToast(`بالتوفيق! بدأت ${title} بنشاط وتركيز ✨`, 'info', 2200);
   }
 
   function syncWizardPills() {
@@ -3514,7 +3517,68 @@
   }
 
   let confettiAnimId = null;
-  function triggerConfetti() {
+
+  function playCelebrationChime() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+      const notes = [
+        { freq: 523.25, time: 0.00, dur: 0.22 }, // C5
+        { freq: 659.25, time: 0.10, dur: 0.24 }, // E5
+        { freq: 783.99, time: 0.20, dur: 0.26 }, // G5
+        { freq: 1046.50, time: 0.32, dur: 0.50 } // C6
+      ];
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0.12, ctx.currentTime);
+      masterGain.connect(ctx.destination);
+
+      notes.forEach(note => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(note.freq, ctx.currentTime + note.time);
+        gain.gain.setValueAtTime(0, ctx.currentTime + note.time);
+        gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + note.time + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + note.time + note.dur);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(ctx.currentTime + note.time);
+        osc.stop(ctx.currentTime + note.time + note.dur);
+      });
+
+      setTimeout(() => {
+        try { ctx.close(); } catch (_) {}
+      }, 1200);
+    } catch (_) {}
+  }
+
+  function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+    let rot = (Math.PI / 2) * 3;
+    let x = cx;
+    let y = cy;
+    const step = Math.PI / spikes;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - outerRadius);
+    for (let i = 0; i < spikes; i++) {
+      x = cx + Math.cos(rot) * outerRadius;
+      y = cy + Math.sin(rot) * outerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+      x = cx + Math.cos(rot) * innerRadius;
+      y = cy + Math.sin(rot) * innerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+    }
+    ctx.lineTo(cx, cy - outerRadius);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function triggerConfetti(options = {}) {
     const canvas = el.confettiCanvas || document.getElementById('confettiCanvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -3525,45 +3589,79 @@
       confettiAnimId = null;
     }
 
+    if (options.withSound !== false) {
+      playCelebrationChime();
+    }
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const width = window.innerWidth;
     const height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
     canvas.style.display = 'block';
 
-    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#eab308'];
-    const count = 120;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const colors = [
+      '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+      '#ec4899', '#06b6d4', '#eab308', '#6366f1', '#14b8a6'
+    ];
+    const isMobile = width < 600;
+    const count = isMobile ? 80 : 130;
     const particles = [];
+    const shapes = ['ribbon', 'ribbon', 'star', 'circle'];
 
     for (let i = 0; i < count; i++) {
+      const sourceSide = i % 3; // 0: يسار, 1: يمين, 2: وسط
+      let startX, vx, vy;
+
+      if (sourceSide === 0) {
+        startX = width * (0.05 + Math.random() * 0.2);
+        vx = Math.random() * 9 + 2;
+        vy = -(Math.random() * 12 + 8);
+      } else if (sourceSide === 1) {
+        startX = width * (0.75 + Math.random() * 0.2);
+        vx = -(Math.random() * 9 + 2);
+        vy = -(Math.random() * 12 + 8);
+      } else {
+        startX = width * 0.5 + (Math.random() * 120 - 60);
+        vx = (Math.random() - 0.5) * 12;
+        vy = -(Math.random() * 14 + 10);
+      }
+
       particles.push({
-        x: width / 2 + (Math.random() * 200 - 100),
-        y: height * 0.4 + (Math.random() * 100 - 50),
-        vx: (Math.random() - 0.5) * 16,
-        vy: (Math.random() - 0.8) * 18 - 4,
-        size: Math.random() * 8 + 6,
+        x: startX,
+        y: height * 0.85 + (Math.random() * 60),
+        vx: vx,
+        vy: vy,
+        size: Math.random() * 6 + (isMobile ? 5 : 7),
         color: colors[Math.floor(Math.random() * colors.length)],
+        shape: shapes[Math.floor(Math.random() * shapes.length)],
         rotation: Math.random() * 360,
-        rotationSpeed: (Math.random() - 0.5) * 12,
-        gravity: 0.35,
-        drag: 0.98,
+        rotationSpeed: (Math.random() - 0.5) * 8,
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: Math.random() * 0.12 + 0.05,
+        gravity: 0.32,
+        drag: 0.985,
         opacity: 1
       });
     }
 
     const startTime = Date.now();
-    const duration = 3500;
+    const duration = 3600;
 
     function renderConfetti() {
       const elapsed = Date.now() - startTime;
       if (elapsed > duration) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, width, height);
         canvas.style.display = 'none';
         confettiAnimId = null;
         return;
       }
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, width, height);
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
@@ -3572,17 +3670,30 @@
         p.x += p.vx;
         p.y += p.vy;
         p.rotation += p.rotationSpeed;
+        p.wobble += p.wobbleSpeed;
 
-        if (elapsed > duration * 0.7) {
-          p.opacity = Math.max(0, (duration - elapsed) / (duration * 0.3));
+        if (elapsed > duration * 0.65) {
+          p.opacity = Math.max(0, (duration - elapsed) / (duration * 0.35));
         }
 
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate((p.rotation * Math.PI) / 180);
+        const scaleX = Math.cos(p.wobble);
+        ctx.scale(scaleX, 1);
         ctx.globalAlpha = p.opacity;
         ctx.fillStyle = p.color;
-        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+
+        if (p.shape === 'star') {
+          drawStar(ctx, 0, 0, 5, p.size, p.size * 0.5);
+        } else if (p.shape === 'circle') {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        }
+
         ctx.restore();
       }
 
@@ -3591,6 +3702,8 @@
 
     confettiAnimId = requestAnimationFrame(renderConfetti);
   }
+
+  const triggerCelebration = triggerConfetti;
 
   function downloadTextWords() {
     if (!state.vocabulary.length) {
@@ -3745,7 +3858,8 @@
     }
   ];
 
-  function checkAchievements() {
+  function checkAchievements(options = {}) {
+    const isSilent = Boolean(options && options.silent);
     if (!state.badges) state.badges = { unlocked: {} };
     if (!state.badges.unlocked) state.badges.unlocked = {};
 
@@ -3766,10 +3880,12 @@
     if (newlyUnlocked.length > 0) {
       saveState();
       renderAchievementsUI();
-      newlyUnlocked.forEach(ach => {
-        showToast(`🏅 وسام جديد مفتوح: "${ach.title}" ${ach.icon}!`, 'success', 4500);
-      });
-      triggerConfetti();
+      if (!isSilent) {
+        newlyUnlocked.forEach(ach => {
+          showToast(`🏅 وسام جديد مفتوح: "${ach.title}" ${ach.icon}!`, 'success', 4500);
+        });
+        triggerCelebration();
+      }
     }
   }
 
@@ -3935,6 +4051,7 @@
 
     openModal(el.dailySprintModal);
     renderSprintQuestion();
+    showToast(isVault ? '🎯 بدأت مراجعة كلمات الخزنة لتثبيتها 100% ✨' : '⚡ انطلق تحدي الـ 5 دقائق! بالتوفيق في الكتابة والإملاء ✨', 'info', 2200);
 
     if (sprintQuizState.timerId) clearInterval(sprintQuizState.timerId);
     sprintQuizState.timerId = setInterval(() => {
@@ -4403,7 +4520,6 @@
     const seen = storageGet(UPDATE_KEY);
     if (seen !== APP_VERSION) {
       openModal(el.updateModal);
-      triggerConfetti();
       try { localStorage.setItem(UPDATE_KEY, APP_VERSION); } catch (_) {}
     }
   }
@@ -5342,7 +5458,7 @@
     
     renderWordOfTheDay();
     updateAllViews();
-    checkAchievements();
+    checkAchievements({ silent: true });
     navigateTo('homePage', false);
 
     if (location.protocol === 'http:' || location.protocol === 'https:') {
