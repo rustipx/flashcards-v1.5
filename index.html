@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#2563eb">
   <meta name="description" content="بطاقات كلمات للتعلم والمراجعة والاختبارات والتدريب الصوتي ونظام حفظني الذكي">
-  <title>📚 بطاقات المفردات الذكية – v1.5.3</title>
+  <title>📚 بطاقات المفردات الذكية – v1.5.4</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icon-192.png" type="image/png">
-  <link rel="stylesheet" href="./style.css?v=1.5.3">
+  <link rel="stylesheet" href="./style.css?v=1.5.4">
 </head>
 <body>
 
@@ -20,7 +20,7 @@
   <div class="update-banner-body">
     <span class="update-banner-icon">🚀</span>
     <div class="update-banner-text">
-      <strong>يتوفر تحديث جديد للتطبيق (<span id="updateBannerVersion">1.5.3</span>)</strong>
+      <strong>يتوفر تحديث جديد للتطبيق (<span id="updateBannerVersion">1.5.4</span>)</strong>
       <p>تم تنزيل الأكواد الجديدة بنجاح. بياناتك وكلماتك وتقدمك محفوظون 100%.</p>
     </div>
   </div>
@@ -580,7 +580,7 @@
       <input type="email" name="email" placeholder="📧 بريدك الإلكتروني *" required>
       <textarea name="message" rows="4" placeholder="✍️ اكتب رأيك، اقتراحك، أو تجربتك مع التطبيق..." required></textarea>
       <input type="hidden" name="access_key" value="c1d4a19f-7583-47ee-a733-db6276493109">
-      <input type="hidden" name="subject" value="رأي جديد من تطبيق الكلمات v1.5.3">
+      <input type="hidden" name="subject" value="رأي جديد من تطبيق الكلمات v1.5.4">
       <button type="submit" class="ctrl-btn primary">📨 إرسال الرأي والملاحظات</button>
     </form>
     <div id="feedbackSuccess" class="form-message success" style="display:none;"></div>
@@ -589,7 +589,7 @@
 
   <div class="settings-group">
     <label class="settings-label">ℹ️ معلومات وإدارة الإصدار والتحديثات</label>
-    <p class="version-text">الإصدار المثبت: <strong>1.5.3 🚀</strong></p>
+    <p class="version-text">الإصدار المثبت: <strong id="appVersionInstalledText">1.5.4 🚀</strong></p>
     <div style="display:flex; flex-direction:column; gap:8px;">
       <button class="ctrl-btn" id="viewFeaturesBtn" type="button">📋 عرض ميزات وتحديثات هذا الإصدار</button>
       <button class="ctrl-btn primary" id="checkUpdateAppBtn" type="button" style="font-size:0.95rem;">🔍 فحص التحديثات وتثبيت الجديد تلقائياً</button>
@@ -635,7 +635,7 @@
   <button class="nav-btn" data-page="settingsPage"><span class="nav-icon">⚙️</span><span class="nav-label">الإعدادات</span></button>
 </nav>
 
-<div class="version-badge">v1.5.3</div>
+<div class="version-badge" id="appVersionBadge">v1.5.4</div>
 
 <canvas id="confettiCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10050;display:none;"></canvas>
 
@@ -752,7 +752,39 @@
       <div class="export-modal-icon">📄</div>
       <div>
         <h3 id="exportWordsTitle" style="margin:0; font-size:1.2rem; font-weight:800;">تصدير وطباعة قائمة الكلمات</h3>
-        <span class="export-modal-subtitle">اختر صيغة التصدير المناسبة للمراجعة الورقية أو الحفظ</span>
+        <span class="export-modal-subtitle">فلترة ذكية وتصدير بصيغ متعددة متوافقة مع Anki و Quizlet و PDF</span>
+      </div>
+    </div>
+
+    <!-- لوحة خيارات الفلترة المسبقة قبل التصدير -->
+    <div class="export-filter-panel" style="background:var(--surface-alt); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:14px;">
+      <div style="font-size:0.86rem; font-weight:700; color:var(--text); margin-bottom:8px;">🎯 خيارات الفلترة للتصدير:</div>
+      <div class="export-filter-chips-row" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+        <label class="export-check-chip" style="display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; background:var(--card-bg); border:1px solid var(--border); padding:5px 10px; border-radius:var(--radius-pill);">
+          <input type="checkbox" id="exportFilterLearned" checked style="accent-color:var(--primary); cursor:pointer;">
+          <span>✅ كلمات محفوظة</span>
+        </label>
+        <label class="export-check-chip" style="display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; background:var(--card-bg); border:1px solid var(--border); padding:5px 10px; border-radius:var(--radius-pill);">
+          <input type="checkbox" id="exportFilterDifficult" checked style="accent-color:var(--primary); cursor:pointer;">
+          <span>⚠️ كلمات صعبة</span>
+        </label>
+        <label class="export-check-chip" style="display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; background:var(--card-bg); border:1px solid var(--border); padding:5px 10px; border-radius:var(--radius-pill);">
+          <input type="checkbox" id="exportFilterNew" checked style="accent-color:var(--primary); cursor:pointer;">
+          <span>🆕 كلمات جديدة</span>
+        </label>
+      </div>
+      
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; border-top:1px dashed var(--border); padding-top:8px;">
+        <div style="display:flex; align-items:center; gap:6px; font-size:0.84rem;">
+          <span>الحد الأقصى:</span>
+          <select id="exportLimitSelect" style="padding:4px 8px; border:1px solid var(--border); border-radius:var(--radius-xs); background:var(--card-bg); color:var(--text); font-size:0.84rem;">
+            <option value="0">الكل (بدون حد)</option>
+            <option value="20">أول 20 كلمة</option>
+            <option value="50">أول 50 كلمة</option>
+            <option value="100">أول 100 كلمة</option>
+          </select>
+        </div>
+        <span id="exportMatchingCountBadge" class="export-match-badge" style="font-size:0.82rem; font-weight:700; color:var(--primary); background:var(--primary-light); padding:3px 10px; border-radius:var(--radius-pill);">سيتم تصدير: 0 كلمة</span>
       </div>
     </div>
 
@@ -760,32 +792,16 @@
       <button type="button" class="export-option-card" id="exportTsvAllBtn">
         <span class="export-card-icon">📋</span>
         <div class="export-card-info">
-          <strong>تصدير TSV (متوافق مع Anki / Quizlet)</strong>
-          <span>ملف مجدول لكل الكلمات جاهز للاستيراد المباشر في Anki أو Quizlet</span>
-        </div>
-      </button>
-
-      <button type="button" class="export-option-card" id="exportTsvDifficultBtn">
-        <span class="export-card-icon">⚡</span>
-        <div class="export-card-info">
-          <strong>تصدير الكلمات الصعبة فقط (TSV)</strong>
-          <span>ملف مجدول خاص بالكلمات المتعثرة للتدريب المركز في Anki و Quizlet</span>
+          <strong>تصدير TSV (Anki / Quizlet)</strong>
+          <span>ملف مجدول متوافق 100% مع الفلترة المحددة أعلاه</span>
         </div>
       </button>
 
       <button type="button" class="export-option-card" id="exportPdfAllBtn">
         <span class="export-card-icon">📑</span>
         <div class="export-card-info">
-          <strong>تصدير / طباعة PDF (جميع الكلمات)</strong>
-          <span>ملف PDF منسق وجاهز للطباعة والمراجعة لجميع الكلمات الحالية</span>
-        </div>
-      </button>
-
-      <button type="button" class="export-option-card" id="exportPdfDifficultBtn">
-        <span class="export-card-icon">⚠️</span>
-        <div class="export-card-info">
-          <strong>تصدير / طباعة PDF (الكلمات الصعبة فقط)</strong>
-          <span>ملف PDF خاص بالكلمات التي تحتاج لتركيز وتثبيت ورقي</span>
+          <strong>تصدير / طباعة PDF</strong>
+          <span>ملف PDF منسق وجاهز للطباعة للكلمات المطابقة للفلتر</span>
         </div>
       </button>
 
@@ -806,57 +822,81 @@
     <div class="help-header">
       <div class="help-badge-icon">📖</div>
       <div>
-        <h2 id="helpTitle" style="margin:0; font-size:1.3rem;">دليل استخدام التطبيق (v1.5.2)</h2>
+        <h2 id="helpTitle" style="margin:0; font-size:1.3rem;">دليل استخدام التطبيق (v1.5.4)</h2>
         <p style="margin:4px 0 0; font-size:0.82rem; color:var(--text-secondary);">كل ما تحتاجه لتجربة حفظ ومراجعة ذكية وسريعة</p>
       </div>
     </div>
 
     <div class="help-body">
       <div class="help-card">
-        <div class="help-card-icon">🧠</div>
+        <div class="help-card-icon">🎯</div>
         <div class="help-card-info">
-          <h4>1. مسار حفظني الذكي المتسلسل</h4>
-          <p>مسار تعليمي ذكي مستقل بالكامل يفتح الدروس بالتتابع مع محطات تقييم تراكمية واحتفال بالإنجاز عند إتمام كل درس.</p>
+          <h4>1. معيار إتقان الكلمات الحقيقي</h4>
+          <p>تعتبر الكلمة "محفوظة" رسمياً بعد اختبارها 5 مرات على الأقل مع تحقيق نسبة دقة 80% فأعلى، لضمان ثباتها في الذاكرة الحقيقية.</p>
         </div>
       </div>
 
       <div class="help-card">
-        <div class="help-card-icon">🔄</div>
+        <div class="help-card-icon">⚡</div>
         <div class="help-card-info">
-          <h4>2. تغيير حالة الكلمة يدويًا</h4>
-          <p>يمكنك تغيير حالة أي كلمة مباشرة (جديدة، صعبة، محفوظة) من قائمة الكلمات أو عبر نافذة التعديل بنقرة واحدة.</p>
+          <h4>2. تحدي الـ 5 دقائق اليومي (Daily Sprint)</h4>
+          <p>تحدي كتابي سريع مخصص لمراجعة وتثبيت 10 كلمات من مفرداتك المحفوظة لضمان عدم نسيانها وتثبيت الستريك اليومي.</p>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="help-card-icon">🧠</div>
+        <div class="help-card-info">
+          <h4>3. خزنة مراجعة الأخطاء (Mistake Bank)</h4>
+          <p>الكلمات التي تخطئ فيها مرتين أو أكثر تنتقل للخزنة تلقائياً للتركيز عليها، وتتخرج بنجاح بعد 3 إجابات صحيحة متتالية.</p>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="help-card-icon">📋</div>
+        <div class="help-card-info">
+          <h4>4. استيراد وتصدير Anki و Quizlet (TSV)</h4>
+          <p>تصدير واستيراد الكلمات بسهولة بصيغة TSV المفصولة بـ Tab المتوافقة مع أشهر تطبيقات التكرار المتباعد بدون فقدان أي بيانات.</p>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="help-card-icon">🏅</div>
+        <div class="help-card-info">
+          <h4>5. سجل الشارات والأوسمة التحفيزية</h4>
+          <p>9 أوسمة إنجاز متدرجة تكافئ استمرارية الستريك، دقة الإتقان، السرعة في الإجابة، والنطق الصوتي المستمر.</p>
+        </div>
+      </div>
+
+      <div class="help-card">
+        <div class="help-card-icon">🗺️</div>
+        <div class="help-card-info">
+          <h4>6. مسار حفظني الذكي المتسلسل</h4>
+          <p>مسار تعليمي ذكي مستقل بالكامل يفتح الدروس بالتتابع مع محطات تقييم تراكمية واحتفال بالإنجاز عند إتمام كل درس.</p>
         </div>
       </div>
 
       <div class="help-card">
         <div class="help-card-icon">📑</div>
         <div class="help-card-info">
-          <h4>3. تصدير وطباعة PDF</h4>
-          <p>اطبع قائمة كلماتك أو الكلمات الصعبة كملف PDF منظم وجاهز للمراجعة الورقية في أي وقت.</p>
+          <h4>7. تصدير وطباعة PDF مع الفلترة</h4>
+          <p>اطبع قائمة كلماتك أو فئات محددة (المحفوظة أو الصعبة) كملف PDF منظم وجاهز للمراجعة الورقية.</p>
         </div>
       </div>
 
       <div class="help-card">
         <div class="help-card-icon">🌟</div>
         <div class="help-card-info">
-          <h4>4. كلمة اليوم (Word of the Day)</h4>
-          <p>يتم اختيار كلمة عشوائية كل يوم وعرضها في قمة الصفحة الرئيسية مع النطق الصوتي ومشاركتها كنص منسق.</p>
-        </div>
-      </div>
-
-      <div class="help-card">
-        <div class="help-card-icon">🏷️</div>
-        <div class="help-card-info">
-          <h4>5. تصنيف الكلمات والفلترة</h4>
-          <p>صنّف كلماتك وفلترها بضغطة زر حسب الموضوع أو مستوى الصعوبة.</p>
+          <h4>8. كلمة اليوم (Word of the Day)</h4>
+          <p>يتم اختيار كلمة عشوائية يومياً وعرضها في قمة الصفحة الرئيسية مع النطق الصوتي ومشاركتها كنص منسق.</p>
         </div>
       </div>
 
       <div class="help-card">
         <div class="help-card-icon">⏰</div>
         <div class="help-card-info">
-          <h4>6. التذكير اليومي والستريك</h4>
-          <p>حدد موعد التنبيه اليومي المناسب لك وحافظ على الستريك وعدد ساعات الحفظ المستمر.</p>
+          <h4>9. التذكير اليومي والستريك</h4>
+          <p>حدد موعد التنبيه اليومي المناسب لك وحافظ على الستريك وتتبع إحصائياتك أولاً بأول.</p>
         </div>
       </div>
     </div>
@@ -869,40 +909,48 @@
     <div class="update-header">
       <div class="update-badge-icon">🚀</div>
       <div>
-        <h2 id="updateTitle" style="margin:0; font-size:1.3rem;">تحديثات وميزات الإصدار 1.5.3</h2>
-        <span class="version-subtitle">الترقية الكبرى للتحديات، الأوسمة، وبنك الأخطاء</span>
+        <h2 id="updateTitle" style="margin:0; font-size:1.3rem;">تحديثات وميزات الإصدار 1.5.4</h2>
+        <span class="version-subtitle">إصلاحات جودة وأمان بيانات + نظام تقييم حفظ حقيقي ومستقل</span>
       </div>
     </div>
     <div class="update-body">
+      <!-- ميزات 1.5.4 الجديدة -->
+      <div class="update-section" style="border:1.5px solid var(--primary); background:var(--primary-light); padding:12px 14px; border-radius:var(--radius-sm);">
+        <h3 class="update-section-title" style="color:var(--primary);">🎯 نظام تقييم حفظ حقيقي وأدق</h3>
+        <ul class="update-list">
+          <li><strong>تقييم إتقان مستقل:</strong> لا يتم احتساب الكلمة كمحفوظة إلا بعد اختبارها 5 مرات على الأقل مع دقة 80% فأعلى.</li>
+          <li><strong>تحدي الـ 5 دقائق للمحفوظات:</strong> يركز التحدي السريع على مراجعة الكلمات المتقنة لتثبيتها في الذاكرة طويلة المدى.</li>
+        </ul>
+      </div>
+
+      <div class="update-section" style="border:1.5px solid var(--border); background:var(--surface-alt); padding:12px 14px; border-radius:var(--radius-sm);">
+        <h3 class="update-section-title">🛡️ إصلاحات جودة وأمان بيانات التصدير والاستيراد</h3>
+        <ul class="update-list">
+          <li><strong>استيراد آمن 100%:</strong> خيارات واضحة (دمج / استبدال / إلغاء) مع منع أي فقدان للبيانات عند الإغلاق العرضي.</li>
+          <li><strong>فلترة متقدمة للتصدير:</strong> تصدير TSV و PDF و TXT بحسب الحالة والعدد مع فحص شامل لصحة المفردات.</li>
+        </ul>
+      </div>
+
+      <!-- ميزات 1.5.3 الأساسية المعتمدة -->
       <div class="update-section">
         <h3 class="update-section-title">📋 استيراد وتصدير Anki و Quizlet (TSV)</h3>
         <ul class="update-list">
-          <li><strong>تصدير TSV مجدول:</strong> تصدير كافة الكلمات أو الكلمات الصعبة فقط بضغطة زر متوافقة 100% مع Anki و Quizlet.</li>
-          <li><strong>استيراد ذكي:</strong> دعم استيراد ملفات TSV المفصولة بـ Tab والدمج السلس مع الكلمات الحالية دون تكرار.</li>
+          <li><strong>تصدير TSV مجدول:</strong> تصدير الكلمات بضغطة زر متوافقة 100% مع Anki و Quizlet.</li>
+          <li><strong>استيراد ذكي:</strong> دمج سلس مع الكلمات الحالية دون تكرار.</li>
         </ul>
       </div>
 
       <div class="update-section">
         <h3 class="update-section-title">🏅 نظام الشارات والأوسمة التحفيزية</h3>
         <ul class="update-list">
-          <li><strong>9 أوسمة متدرجة:</strong> أوسمة للإتقان، الستريك المتواصل، تحدي السرعة، النطق الصوتي، وتخريج الكلمات المتعثرة.</li>
-          <li><strong>احتفال فوري:</strong> ظهور إشعار بهيج ومؤثر احتفالي فور فك قفل أي وسام جديد.</li>
-        </ul>
-      </div>
-
-      <div class="update-section">
-        <h3 class="update-section-title">⚡ تحدي الـ 5 دقائق اليومي (Daily Sprint)</h3>
-        <ul class="update-list">
-          <li><strong>مراجعة سريعة ذكية:</strong> اختيار تلقائي لأهم 10 كلمات مستحقة وصعبة لمراجعتها سريعاً مع مؤقت تنازلي.</li>
-          <li><strong>تثبيت فوري للنشاط:</strong> يربط تقدمك بالستريك اليومي ويوفر إحصائيات دقيقة للإنجاز.</li>
+          <li><strong>9 أوسمة متدرجة:</strong> أوسمة للإتقان، الستريك، السرعة، النطق، وتخريج الكلمات المتعثرة.</li>
         </ul>
       </div>
 
       <div class="update-section">
         <h3 class="update-section-title">🧠 خزنة مراجعة الأخطاء (Weak Words Vault)</h3>
         <ul class="update-list">
-          <li><strong>رصد تلقائي للأخطاء:</strong> أي كلمة يخطئ فيها المستخدم مرتين أو أكثر تنتقل تلقائياً إلى الخزنة.</li>
-          <li><strong>تخريج بالإتقان التام:</strong> نظام 3 إجابات صحيحة متتالية لتخريج الكلمة من الخزنة إلى قائمة المحفوظات بنجاح.</li>
+          <li><strong>رصد تلقائي للأخطاء:</strong> مراجعة مخصصة للأخطاء المتكررة والتخريج بعد 3 إجابات صحيحة متتالية.</li>
         </ul>
       </div>
     </div>
@@ -1001,6 +1049,13 @@
     </div>
 
     <div class="about-modal-body">
+      <!-- رؤية المشروع وأهدافه -->
+      <div class="about-vision-box" style="background:var(--surface-alt); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px;">
+        <p style="margin:0; font-size:0.88rem; color:var(--text); line-height:1.6;">
+          💡 <strong>رؤية المشروع:</strong> تطبيق تعليمي مفتوح المصدر يهدف إلى إعادة صياغة تجربة تعلّم وحفظ المفردات الأجنبية عبر تقنيات التكرار المتباعد الذكي والتقييم الدقيق المبني على الإتقان الفعلي، لتسهيل حفظ الكلمات وتثبيتها في الذاكرة طويلة المدى.
+        </p>
+      </div>
+
       <!-- بطاقة المطور 1: Omar Nasser -->
       <div class="dev-card">
         <div class="dev-card-top">
@@ -1044,6 +1099,19 @@
         </div>
       </div>
 
+      <!-- قسم التقنيات المستخدمة (Built with) -->
+      <div class="about-tech-stack" style="background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px;">
+        <h4 style="margin:0 0 10px; font-size:0.9rem; color:var(--text); font-weight:700;">🛠️ بُني باستخدام | Built With</h4>
+        <div class="tech-chips-row" style="display:flex; flex-wrap:wrap; gap:8px;">
+          <span class="dev-badge-tech" style="font-size:0.8rem; padding:4px 10px;">JavaScript (ES6+)</span>
+          <span class="dev-badge-tech" style="font-size:0.8rem; padding:4px 10px;">Progressive Web App (PWA)</span>
+          <span class="dev-badge-tech" style="font-size:0.8rem; padding:4px 10px;">Service Worker (Offline-First)</span>
+          <span class="dev-badge-tech" style="font-size:0.8rem; padding:4px 10px;">LocalStorage Engine</span>
+          <span class="dev-badge-tech" style="font-size:0.8rem; padding:4px 10px;">Web Speech API</span>
+          <span class="dev-badge-tech" style="font-size:0.8rem; padding:4px 10px;">Modern CSS & Dark Mode</span>
+        </div>
+      </div>
+
       <!-- زر الدخول المباشر لمستودع المشروع على GitHub -->
       <div class="repo-direct-action">
         <a href="https://github.com/rustinasser-beep/flashcards-v1.5.git" target="_blank" rel="noopener" class="ctrl-btn primary repo-main-btn">
@@ -1071,7 +1139,8 @@
       <div id="confirmModalDetails" class="confirm-modal-details" style="display:none;"></div>
     </div>
     <div class="confirm-modal-actions">
-      <button type="button" class="ctrl-btn danger-btn" id="confirmModalOkBtn">تأكيد</button>
+      <button type="button" class="ctrl-btn primary" id="confirmModalOkBtn">تأكيد</button>
+      <button type="button" class="ctrl-btn danger-btn" id="confirmModalAltBtn" style="display:none;">استبدال</button>
       <button type="button" class="ctrl-btn" id="confirmModalCancelBtn">إلغاء</button>
     </div>
   </div>
@@ -1080,6 +1149,6 @@
 <!-- إشعار النظام الموحد الفوري (App Toast Notification) -->
 <div id="appToast" class="app-toast" role="alert" aria-live="assertive"></div>
 
-<script src="./script.js?v=1.5.3" defer></script>
+<script src="./script.js?v=1.5.4" defer></script>
 </body>
 </html>

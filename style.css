@@ -1,4 +1,4 @@
-/* style.css – v1.5.3 */
+/* style.css – v1.5.4 */
 :root {
   --bg: #f4f7fb;
   --surface: #ffffff;
@@ -5177,5 +5177,56 @@ body.dark .word-vault-tag {
 
   * {
     -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ==================== v1.5.4 Additions ==================== */
+.export-filter-panel {
+  transition: all var(--transition);
+}
+
+.export-check-chip {
+  user-select: none;
+  transition: all var(--transition);
+}
+
+.export-check-chip:hover {
+  border-color: var(--primary) !important;
+  background: var(--surface) !important;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.confirm-modal-actions button {
+  min-width: 100px;
+  padding: 9px 16px;
+  font-size: 0.9rem;
+}
+
+@media screen and (max-width: 480px) {
+  .confirm-modal-actions {
+    flex-direction: column-reverse;
+    width: 100%;
+  }
+
+  .confirm-modal-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .export-filter-chips-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .export-check-chip {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
