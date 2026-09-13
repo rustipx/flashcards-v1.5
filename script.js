@@ -2913,17 +2913,47 @@
       return;
     }
 
-    // تحديث شريط التقدم بناءً على عدد الكلمات المُتقَنة فعليًا من إجمالي الجلسة (وليس الطول المتغيّر للطابور)
-    const total = session.totalWords || words.length;
+    if (session.isCheckpoint) {
+      // وضع التقييم الشامل: اختبار كتابة مباشر لمرة واحدة لكل كلمة مثل الاختبار الذاتي
+      const currentNum = session.currentIndex + 1;
+      el.hafazniProgressText.textContent = `السؤال ${currentNum} من ${total} (🏆 تقييم شامل)`;
+      el.hafazniProgressBar.style.width = `${((currentNum - 1) / Math.max(1, total)) * 100}%`;
+      el.hafazniQuestionTypeLabel.textContent = '🏆 تقييم شامل (اختبار كتابة)';
+
+      const source = getSourceWord(originalWord);
+      el.hafazniQuestion.textContent = source;
+
+      el.hafazniInput.style.display = 'block';
+      el.hafazniOptionsGrid.style.display = 'none';
+      el.hafazniInput.value = '';
+      el.hafazniInput.className = '';
+      el.hafazniInput.placeholder = 'اكتب الترجمة واضغط Enter...';
+      el.hafazniInput.disabled = false;
+      el.hafazniInput.focus();
+
+      el.hafazniWordStats.style.display = 'flex';
+      el.hafazniAttempts.textContent = `الكلمة: ${currentNum} / ${total}`;
+      el.hafazniMastery.textContent = `الصحيح: ${session.summary.correct}`;
+
+      el.hafazniFeedback.textContent = '';
+      el.hafazniFeedback.className = 'test-feedback';
+
+      if (originalWord.english && /[A-Za-z]/.test(originalWord.english)) {
+        speak(originalWord.english);
+      }
+
+      sessionWord.lastShown = now();
+      sessionWord.answered = false;
+      state.hafazni.processing = false;
+      updateHafazniOverview();
+      return;
+    }
+
+    // شريط التقدم للدرس التفاعلي العادي:
     const done = Math.max(0, total - words.length);
     el.hafazniProgressText.textContent = `${done} / ${total}`;
     el.hafazniProgressBar.style.width = total ? `${(done / total) * 100}%` : '0%';
-
-    if (session.isCheckpoint) {
-      el.hafazniQuestionTypeLabel.textContent = '🏆 تقييم شامل (إتقان تام)';
-    } else {
-      el.hafazniQuestionTypeLabel.textContent = '';
-    }
+    el.hafazniQuestionTypeLabel.textContent = '';
 
     // تحديد نوع السؤال: كتابة أو اختيار من متعدد
     // نعتمد فقط على مؤشرات تتراجع مع الأداء الجيد (difficulty يقل مع كل إجابة صحيحة،
@@ -3106,7 +3136,7 @@
     if (!originalWord) return;
 
     const correctAnswer = getTargetWord(originalWord);
-    const isCorrect = normalizeString(input) === normalizeString(correctAnswer);
+    const isCorrect = (typeof isSprintWritingMatch === 'function' && isSprintWritingMatch(input, correctAnswer)) || (normalizeString(input) === normalizeString(correctAnswer));
 
     state.hafazni.processing = true;
     sessionWord.answered = true;
@@ -3114,7 +3144,63 @@
     // تحديث المظهر
     el.hafazniInput.className = isCorrect ? 'correct' : 'wrong';
 
-    // تحديث إحصائيات الجلسة
+    // مسار التقييم الشامل: اختبار كتابي لمرة واحدة لكل كلمة مثل الاختبار الذاتي
+    if (session.isCheckpoint) {
+      sessionWord.attempts = 1;
+      session.summary.attempts++;
+
+      if (isCorrect) {
+        sessionWord.correct = 1;
+        session.summary.correct++;
+        if (!session.summary.mastered.includes(sessionWord.id)) {
+          session.summary.mastered.push(sessionWord.id);
+        }
+
+        // الكلمة تُحسب محفوظة مباشرةً
+        originalWord.status = 'learned';
+        originalWord.correctCount = (originalWord.correctCount || 0) + 1;
+        originalWord.interval = originalWord.interval > 0 ? Math.min(originalWord.interval * 2, 720) : 1;
+        originalWord.lastReview = now();
+        originalWord.due = now() + originalWord.interval * 3600000;
+        evaluateWordMastery(originalWord, { isHafazni: true, silent: true });
+
+        el.hafazniFeedback.textContent = '✅ إجابة صحيحة! (تم حفظ الكلمة)';
+        el.hafazniFeedback.className = 'test-feedback correct';
+      } else {
+        sessionWord.wrong = 1;
+        session.summary.wrong++;
+        if (!session.mistakes.includes(sessionWord.id)) {
+          session.mistakes.push(sessionWord.id);
+        }
+        if (!session.summary.needsReview.includes(sessionWord.id)) {
+          session.summary.needsReview.push(sessionWord.id);
+        }
+
+        originalWord.wrongCount = (originalWord.wrongCount || 0) + 1;
+        originalWord.interval = 0;
+        originalWord.lastReview = now();
+        originalWord.due = now();
+        evaluateWordMastery(originalWord, { isHafazni: true, silent: true });
+
+        el.hafazniFeedback.textContent = `❌ خطأ! الصحيح: ${correctAnswer}`;
+        el.hafazniFeedback.className = 'test-feedback wrong';
+      }
+
+      saveState(true);
+      updateStats();
+
+      window.setTimeout(() => {
+        session.currentIndex++;
+        if (session.currentIndex >= session.sessionWords.length) {
+          finishHafazniSession();
+        } else {
+          renderHafazniQuestion();
+        }
+      }, 1000);
+      return;
+    }
+
+    // تحديث إحصائيات الجلسة للدرس العادي
     sessionWord.attempts++;
     session.summary.attempts++;
     if (isCorrect) {
@@ -3235,50 +3321,39 @@
     state.hafazni.isCheckpoint = false;
 
     if (completedLessonId !== null && completedLessonId !== undefined) {
-      if (isCheckpoint && hasMistakes) {
-        // فشل التقييم الشامل بسبب وجود أخطاء، لا نعتبره مكتملاً حتى يراجعها
-        el.completedLessonNumber.textContent = 'التقييم الشامل غير مكتمل';
-        el.lessonCompleteNote.textContent = '⚠️ انتهى التقييم ولديك أخطاء! يجب مراجعة الأخطاء في "درس المراجعة" لاجتياز التقييم نهائياً.';
-        el.lessonCompleteNote.style.color = 'var(--danger)';
-        el.lessonCompleteNote.style.display = 'block';
-        el.nextLessonBtn.style.display = 'none';
+      if (!state.hafazniLessons.completedLessonIds.includes(completedLessonId)) {
+        state.hafazniLessons.completedLessonIds.push(completedLessonId);
+      }
+      if (completedLessonIndex !== null && completedLessonIndex !== undefined && !state.hafazniLessons.completedLessonIds.includes(String(completedLessonIndex))) {
+        state.hafazniLessons.completedLessonIds.push(String(completedLessonIndex));
+      }
 
-        // نعيد القيم عشان يقدر يراجع
-        state.hafazni.activeLessonId = completedLessonId;
-        state.hafazni.activeLessonIndex = completedLessonIndex;
+      // إطلاق تأثير الاحتفال (Confetti) عند إتمام الدرس أو التقييم
+      triggerConfetti();
+
+      const nodes = computeLessons();
+      const nextIndex = (completedLessonIndex !== null && completedLessonIndex !== undefined)
+        ? completedLessonIndex + 1
+        : nodes.findIndex(n => n.id === completedLessonId) + 1;
+
+      const nextNode = nodes[nextIndex];
+      const nextAvailable = nextNode && getLessonStatus(nextNode) !== 'locked';
+
+      const currentCompletedNode = nodes.find(n => n.id === completedLessonId || n.index === completedLessonIndex);
+      el.completedLessonNumber.textContent = currentCompletedNode ? currentCompletedNode.title : (isCheckpoint ? '🏆 التقييم الشامل' : 'الدرس');
+      el.lessonCompleteNote.textContent = isCheckpoint
+        ? `🎉 أحسنت! أنهيت التقييم الشامل بنجاح (${state.hafazni.summary.correct} من ${state.hafazni.summary.attempts || 1}).`
+        : 'أحسنت! أكملت الجلسة بنجاح.';
+      el.lessonCompleteNote.style.color = 'var(--accent)';
+      el.lessonCompleteNote.style.display = 'block';
+
+      if (nextAvailable) {
+        el.nextLessonBtn.style.display = 'block';
+        el.nextLessonBtn.textContent = nextNode.type === 'checkpoint' ? '🏆 الانتقال للتقييم الشامل التالي' : `الانتقال إلى ${nextNode.title} 🚀`;
+        el.nextLessonBtn.dataset.nextNodeId = nextNode.id;
+        el.nextLessonBtn.dataset.nextNodeIndex = String(nextNode.index);
       } else {
-        if (!state.hafazniLessons.completedLessonIds.includes(completedLessonId)) {
-          state.hafazniLessons.completedLessonIds.push(completedLessonId);
-        }
-        if (completedLessonIndex !== null && completedLessonIndex !== undefined && !state.hafazniLessons.completedLessonIds.includes(String(completedLessonIndex))) {
-          state.hafazniLessons.completedLessonIds.push(String(completedLessonIndex));
-        }
-
-        // إطلاق تأثير الاحتفال (Confetti) عند إتمام الدرس بنجاح تام
-        triggerConfetti();
-
-        const nodes = computeLessons();
-        const nextIndex = (completedLessonIndex !== null && completedLessonIndex !== undefined)
-          ? completedLessonIndex + 1
-          : nodes.findIndex(n => n.id === completedLessonId) + 1;
-
-        const nextNode = nodes[nextIndex];
-        const nextAvailable = nextNode && getLessonStatus(nextNode) !== 'locked';
-
-        const currentCompletedNode = nodes.find(n => n.id === completedLessonId || n.index === completedLessonIndex);
-        el.completedLessonNumber.textContent = currentCompletedNode ? currentCompletedNode.title : 'الدرس';
-        el.lessonCompleteNote.textContent = 'أحسنت! أكملت الجلسة بنجاح.';
-        el.lessonCompleteNote.style.color = '';
-        el.lessonCompleteNote.style.display = 'block';
-
-        if (nextAvailable) {
-          el.nextLessonBtn.style.display = 'block';
-          el.nextLessonBtn.textContent = nextNode.type === 'checkpoint' ? '🏆 الانتقال للتقييم الشامل التالي' : `الانتقال إلى ${nextNode.title} 🚀`;
-          el.nextLessonBtn.dataset.nextNodeId = nextNode.id;
-          el.nextLessonBtn.dataset.nextNodeIndex = String(nextNode.index);
-        } else {
-          el.nextLessonBtn.style.display = 'none';
-        }
+        el.nextLessonBtn.style.display = 'none';
       }
     } else {
       el.lessonCompleteNote.style.display = 'none';
@@ -5115,7 +5190,10 @@
       if (sessionWord) {
         sessionWord.wrong++;
         session.summary.wrong++;
+        sessionWord.attempts++;
+        session.summary.attempts++;
         if (!session.mistakes.includes(sessionWord.id)) session.mistakes.push(sessionWord.id);
+        if (!session.summary.needsReview.includes(sessionWord.id)) session.summary.needsReview.push(sessionWord.id);
 
         const originalWord = state.vocabulary.find(w => w.id === sessionWord.id);
         if (originalWord) {
@@ -5128,6 +5206,18 @@
 
         saveState(true);
         updateStats();
+
+        if (session.isCheckpoint) {
+          // في التقييم الشامل: الانتقال مباشرة للكلمة التالية دون إعادة تكرار
+          session.currentIndex++;
+          if (session.currentIndex >= session.sessionWords.length) {
+            finishHafazniSession();
+          } else {
+            renderHafazniQuestion();
+            updateHafazniOverview();
+          }
+          return;
+        }
 
         // نقلها للتكرار في الجلسة العادية
         const words = session.sessionWords;
