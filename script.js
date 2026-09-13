@@ -2890,6 +2890,10 @@
 
     const session = state.hafazni;
     const words = session.sessionWords;
+    const total = session.totalWords || words.length || 1;
+
+    // إعادة تعيين قفل المعالجة دائماً عند عرض سؤال جديد
+    state.hafazni.processing = false;
 
     // إذا وصلنا لنهاية القائمة
     if (session.currentIndex >= words.length) {
@@ -2917,11 +2921,11 @@
       // وضع التقييم الشامل: اختبار كتابة مباشر لمرة واحدة لكل كلمة مثل الاختبار الذاتي
       const currentNum = session.currentIndex + 1;
       el.hafazniProgressText.textContent = `السؤال ${currentNum} من ${total} (🏆 تقييم شامل)`;
-      el.hafazniProgressBar.style.width = `${((currentNum - 1) / Math.max(1, total)) * 100}%`;
+      el.hafazniProgressBar.style.width = `${((currentNum) / Math.max(1, total)) * 100}%`;
       el.hafazniQuestionTypeLabel.textContent = '🏆 تقييم شامل (اختبار كتابة)';
 
       const source = getSourceWord(originalWord);
-      el.hafazniQuestion.textContent = source;
+      el.hafazniQuestion.textContent = source || originalWord.english || '—';
 
       el.hafazniInput.style.display = 'block';
       el.hafazniOptionsGrid.style.display = 'none';
@@ -5183,7 +5187,6 @@
 
     el.hafazniCheckBtn.addEventListener('click', checkHafazniWriting);
     el.hafazniSkipBtn.addEventListener('click', () => {
-      if (state.hafazni.processing) return;
       if (!state.hafazni.active) return;
       const session = state.hafazni;
       const sessionWord = session.sessionWords[session.currentIndex];
@@ -5224,6 +5227,12 @@
         const removed = words.splice(session.currentIndex, 1)[0];
         const insertPos = Math.min(session.currentIndex + 1, words.length);
         words.splice(insertPos, 0, removed);
+      } else {
+        session.currentIndex++;
+        if (session.currentIndex >= session.sessionWords.length) {
+          finishHafazniSession();
+          return;
+        }
       }
       renderHafazniQuestion();
       updateHafazniOverview();
