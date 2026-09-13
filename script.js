@@ -7,8 +7,10 @@
   const UPDATE_KEY = 'flashcards_last_seen_version';
 
   // معايير الإتقان الحقيقي للكلمات (Real Mastery System)
-  const MASTERY_MIN_ATTEMPTS = 5;
-  const MASTERY_MIN_ACCURACY = 0.8;
+  const MASTERY_EXTERNAL_MIN_ATTEMPTS = 5; // خارج حفظني (الاختبار الذاتي، تحدي الـ 5 دقائق، كلمة اليوم)
+  const MASTERY_EXTERNAL_MIN_ACCURACY = 0.8;
+  const MASTERY_HAFAZNI_MIN_ATTEMPTS = 3;   // داخل حفظني (مسار الدروس والدرس الحر ومراجعة الأخطاء)
+  const MASTERY_HAFAZNI_MIN_ACCURACY = 0.8;
 
   const STARTER_VOCABULARY = [
     { english: 'Inspiration', arabic: 'إلهام / تشجيع', category: 'عام', status: 'new' },
@@ -245,22 +247,27 @@
 
   /* ============================================================
      نظام تقييم الإتقان الحقيقي المركزي (Centralized Word Mastery System)
+     - داخل نظام حفظني (الدروس، الدرس الحر، مراجعة الأخطاء): 3 محاولات و 80% إتقان
+     - خارج حفظني (الاختبار الذاتي، تحدي الـ 5 دقائق، إلخ): 5 محاولات و 80% دقة
      ============================================================ */
-  function evaluateWordMastery(word, { silent = false } = {}) {
+  function evaluateWordMastery(word, { silent = false, isHafazni = false } = {}) {
     if (!word) return 'new';
     const correct = safeNumber(word.correctCount, 0);
     const wrong = safeNumber(word.wrongCount, 0);
     const totalAttempts = correct + wrong;
     const accuracy = totalAttempts > 0 ? (correct / totalAttempts) : 0;
 
+    const minAttempts = isHafazni ? MASTERY_HAFAZNI_MIN_ATTEMPTS : MASTERY_EXTERNAL_MIN_ATTEMPTS;
+    const minAccuracy = isHafazni ? MASTERY_HAFAZNI_MIN_ACCURACY : MASTERY_EXTERNAL_MIN_ACCURACY;
+
     const prevStatus = word.status || 'new';
     let newStatus = prevStatus;
 
-    if (totalAttempts >= MASTERY_MIN_ATTEMPTS && accuracy >= MASTERY_MIN_ACCURACY) {
+    if (totalAttempts >= minAttempts && accuracy >= minAccuracy) {
       newStatus = 'learned';
-    } else if (wrong >= 2 && (accuracy < 0.6 || totalAttempts < 3)) {
+    } else if (wrong >= 2 && (accuracy < 0.6 || totalAttempts < minAttempts)) {
       newStatus = 'difficult';
-    } else if (prevStatus === 'learned' && accuracy < MASTERY_MIN_ACCURACY) {
+    } else if (prevStatus === 'learned' && accuracy < minAccuracy) {
       // لو الكلمة كانت محفوظة وتراجعت دقتها عن 80%
       newStatus = 'difficult';
     } else if (prevStatus !== 'learned' && prevStatus !== 'difficult') {
@@ -270,7 +277,8 @@
     word.status = newStatus;
 
     if (!silent && prevStatus !== 'learned' && newStatus === 'learned') {
-      showToast(`🏆 تهانينا! أتقنت كلمة "${word.english}" رسمياً بنسبة دقة ${Math.round(accuracy * 100)}% (${totalAttempts} محاولات)!`, 'success');
+      const modeLabel = isHafazni ? 'في نظام حفظني' : 'في نظام التقييم';
+      showToast(`🏆 تهانينا! أتقنت كلمة "${word.english}" ${modeLabel} بنسبة دقة ${Math.round(accuracy * 100)}% (${totalAttempts} محاولات)!`, 'success');
       if (typeof triggerConfetti === 'function') triggerConfetti();
     }
 
@@ -3075,16 +3083,16 @@
       sessionWord.difficulty + (isCorrect ? -0.5 : 1.5)
     ));
 
-    // تحديث حالة الكلمة الأصلية (تأثير دائم)
+    // تحديث حالة الكلمة الأصلية (تأثير دائم - نظام حفظني: 3 محاولات و80% إتقان)
     const originalWord = state.vocabulary.find(w => w.id === sessionWord.id);
     if (originalWord) {
       if (isCorrect) {
         originalWord.correctCount++;
-        evaluateWordMastery(originalWord, { silent: true });
+        evaluateWordMastery(originalWord, { isHafazni: true, silent: true });
         originalWord.interval = originalWord.interval > 0 ? Math.min(originalWord.interval * 1.5, 720) : 1;
       } else {
         originalWord.wrongCount++;
-        evaluateWordMastery(originalWord, { silent: true });
+        evaluateWordMastery(originalWord, { isHafazni: true, silent: true });
         originalWord.interval = 0;
       }
       originalWord.lastReview = now();
@@ -3155,15 +3163,15 @@
       sessionWord.difficulty + (isCorrect ? -0.5 : 1.5)
     ));
 
-    // تحديث الكلمة الأصلية
+    // تحديث الكلمة الأصلية (نظام حفظني: 3 محاولات و80% إتقان)
     if (originalWord) {
       if (isCorrect) {
         originalWord.correctCount++;
-        evaluateWordMastery(originalWord, { silent: true });
+        evaluateWordMastery(originalWord, { isHafazni: true, silent: true });
         originalWord.interval = originalWord.interval > 0 ? Math.min(originalWord.interval * 1.5, 720) : 1;
       } else {
         originalWord.wrongCount++;
-        evaluateWordMastery(originalWord, { silent: true });
+        evaluateWordMastery(originalWord, { isHafazni: true, silent: true });
         originalWord.interval = 0;
       }
       originalWord.lastReview = now();
@@ -3209,10 +3217,14 @@
     const removed = words.splice(currentIdx, 1)[0];
 
     if (isCorrect && removed.mastery >= 80 && removed.attempts >= 3) {
-      // الكلمة أُتقنت فعليًا: تخرج نهائيًا من طابور المراجعة النشط لهذه الجلسة.
-      // لا تتم إعادتها إلى القائمة إطلاقًا — لو أُعيدت (حتى لآخر القائمة) لن يتغيّر
-      // طول sessionWords أبدًا، ولن تنتهي الجلسة مهما أجاب المستخدم بشكل صحيح.
+      // الكلمة أُتقنت فعليًا وفق نظام حفظني (3 محاولات و80% إتقان): تخرج نهائيًا من طابور المراجعة النشط لهذه الجلسة
       session.summary.mastered.push(removed.id);
+      const originalWord = state.vocabulary.find(w => w.id === removed.id);
+      if (originalWord) {
+        originalWord.status = 'learned';
+        originalWord.correctCount = Math.max(originalWord.correctCount || 0, MASTERY_HAFAZNI_MIN_ATTEMPTS);
+        evaluateWordMastery(originalWord, { isHafazni: true, silent: false });
+      }
     } else if (!isCorrect || removed.mastery < 50) {
       // الكلمة صعبة: نضعها في موضع قريب لمراجعتها قريبًا
       // نضعها بعد 2-3 كلمات من الموضع الحالي
@@ -3360,6 +3372,19 @@
       } else {
         el.hafazniMistakesBox.style.display = 'none';
       }
+    }
+
+    // تثبيت حالة الكلمات المتقنة المتخرجة من جلسة حفظني في بنك المفردات
+    if (state.hafazni.summary.mastered && state.hafazni.summary.mastered.length > 0) {
+      state.hafazni.summary.mastered.forEach(id => {
+        const w = state.vocabulary.find(item => item.id === id);
+        if (w) {
+          w.status = 'learned';
+          w.correctCount = Math.max(w.correctCount || 0, MASTERY_HAFAZNI_MIN_ATTEMPTS);
+          evaluateWordMastery(w, { isHafazni: true, silent: true });
+        }
+      });
+      saveState(true);
     }
 
     // شاشة النتيجة تظهر دايمًا إجباريًا عند انتهاء أي درس أو جلسة، بدون استثناء
@@ -5113,7 +5138,7 @@
         const originalWord = state.vocabulary.find(w => w.id === sessionWord.id);
         if (originalWord) {
           originalWord.wrongCount++;
-          originalWord.status = 'difficult';
+          evaluateWordMastery(originalWord, { isHafazni: true, silent: true });
           originalWord.interval = 0;
           originalWord.lastReview = now();
           originalWord.due = now();
