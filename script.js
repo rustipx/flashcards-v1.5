@@ -2913,43 +2913,17 @@
       return;
     }
 
-    // إذا كانت الجلسة عبارة عن تقييم شامل (محطة تقييم على المسار):
-    // اختبار بسيط لمرة واحدة، لا تكرار ولا نسب إتقان ولا محاولات متكررة
-    if (session.isCheckpoint) {
-      el.hafazniProgressText.textContent = `السؤال ${session.currentIndex + 1} من ${words.length}`;
-      el.hafazniProgressBar.style.width = words.length ? `${((session.currentIndex) / words.length) * 100}%` : '0%';
-      el.hafazniQuestionTypeLabel.textContent = '🏆 تقييم شامل (اختبار لمرة واحدة)';
-      el.hafazniWordStats.style.display = 'none';
-
-      const source = getSourceWord(originalWord);
-      el.hafazniQuestion.textContent = source;
-
-      el.hafazniInput.style.display = 'block';
-      el.hafazniOptionsGrid.style.display = 'none';
-      el.hafazniInput.value = '';
-      el.hafazniInput.className = '';
-      el.hafazniInput.placeholder = '✍️ اكتب الترجمة...';
-      window.setTimeout(() => el.hafazniInput.focus(), 50);
-
-      el.hafazniFeedback.textContent = '';
-      el.hafazniFeedback.className = 'test-feedback';
-
-      if (originalWord.english && /[A-Za-z]/.test(originalWord.english)) {
-        speak(originalWord.english);
-      }
-
-      sessionWord.lastShown = now();
-      sessionWord.answered = false;
-      state.hafazni.processing = false;
-      updateHafazniOverview();
-      return;
-    }
-
     // تحديث شريط التقدم بناءً على عدد الكلمات المُتقَنة فعليًا من إجمالي الجلسة (وليس الطول المتغيّر للطابور)
     const total = session.totalWords || words.length;
     const done = Math.max(0, total - words.length);
     el.hafazniProgressText.textContent = `${done} / ${total}`;
     el.hafazniProgressBar.style.width = total ? `${(done / total) * 100}%` : '0%';
+
+    if (session.isCheckpoint) {
+      el.hafazniQuestionTypeLabel.textContent = '🏆 تقييم شامل (إتقان تام)';
+    } else {
+      el.hafazniQuestionTypeLabel.textContent = '';
+    }
 
     // تحديد نوع السؤال: كتابة أو اختيار من متعدد
     // نعتمد فقط على مؤشرات تتراجع مع الأداء الجيد (difficulty يقل مع كل إجابة صحيحة،
@@ -3193,18 +3167,6 @@
     const session = state.hafazni;
     if (!session.active) return;
 
-    // لو الجلسة تقييم شامل: مفيش إتقان ومفيش محاولات، هي مرة واحدة فقط لكل كلمة
-    if (session.isCheckpoint) {
-      session.currentIndex++;
-      if (session.currentIndex >= session.sessionWords.length) {
-        finishHafazniSession();
-      } else {
-        renderHafazniQuestion();
-        updateHafazniOverview();
-      }
-      return;
-    }
-
     // خوارزمية التكرار المتباعد البسيطة:
     // إذا كانت الإجابة صحيحة وتجاوز الإتقان 80%، ننقل الكلمة إلى قائمة "متقنة" ونقلل من ظهورها.
     // إذا كانت خاطئة، نرفع أولويتها بإعادتها إلى المؤشر الحالي أو قريبًا.
@@ -3265,39 +3227,58 @@
     // لو الجلسة دي كانت درسًا أو محطة من خريطة الدروس، نعلّمها مكتملة ونجهّز اقتراح "الدرس التالي"
     const completedLessonId = state.hafazni.activeLessonId;
     const completedLessonIndex = state.hafazni.activeLessonIndex;
+    const isCheckpoint = state.hafazni.isCheckpoint;
+    const hasMistakes = state.hafazni.mistakes && state.hafazni.mistakes.length > 0;
+    
     state.hafazni.activeLessonId = null;
     state.hafazni.activeLessonIndex = null;
+    state.hafazni.isCheckpoint = false;
 
     if (completedLessonId !== null && completedLessonId !== undefined) {
-      if (!state.hafazniLessons.completedLessonIds.includes(completedLessonId)) {
-        state.hafazniLessons.completedLessonIds.push(completedLessonId);
-      }
-      if (completedLessonIndex !== null && completedLessonIndex !== undefined && !state.hafazniLessons.completedLessonIds.includes(String(completedLessonIndex))) {
-        state.hafazniLessons.completedLessonIds.push(String(completedLessonIndex));
-      }
-
-      // إطلاق تأثير الاحتفال (Confetti) عند إتمام الدرس
-      triggerConfetti();
-
-      const nodes = computeLessons();
-      const nextIndex = (completedLessonIndex !== null && completedLessonIndex !== undefined)
-        ? completedLessonIndex + 1
-        : nodes.findIndex(n => n.id === completedLessonId) + 1;
-
-      const nextNode = nodes[nextIndex];
-      const nextAvailable = nextNode && getLessonStatus(nextNode) !== 'locked';
-
-      const currentCompletedNode = nodes.find(n => n.id === completedLessonId || n.index === completedLessonIndex);
-      el.completedLessonNumber.textContent = currentCompletedNode ? currentCompletedNode.title : 'الدرس';
-      el.lessonCompleteNote.style.display = 'block';
-
-      if (nextAvailable) {
-        el.nextLessonBtn.style.display = 'block';
-        el.nextLessonBtn.textContent = nextNode.type === 'checkpoint' ? '🏆 الانتقال للتقييم الشامل التالي' : `الانتقال إلى ${nextNode.title} 🚀`;
-        el.nextLessonBtn.dataset.nextNodeId = nextNode.id;
-        el.nextLessonBtn.dataset.nextNodeIndex = String(nextNode.index);
-      } else {
+      if (isCheckpoint && hasMistakes) {
+        // فشل التقييم الشامل بسبب وجود أخطاء، لا نعتبره مكتملاً حتى يراجعها
+        el.completedLessonNumber.textContent = 'التقييم الشامل غير مكتمل';
+        el.lessonCompleteNote.textContent = '⚠️ انتهى التقييم ولديك أخطاء! يجب مراجعة الأخطاء في "درس المراجعة" لاجتياز التقييم نهائياً.';
+        el.lessonCompleteNote.style.color = 'var(--danger)';
+        el.lessonCompleteNote.style.display = 'block';
         el.nextLessonBtn.style.display = 'none';
+
+        // نعيد القيم عشان يقدر يراجع
+        state.hafazni.activeLessonId = completedLessonId;
+        state.hafazni.activeLessonIndex = completedLessonIndex;
+      } else {
+        if (!state.hafazniLessons.completedLessonIds.includes(completedLessonId)) {
+          state.hafazniLessons.completedLessonIds.push(completedLessonId);
+        }
+        if (completedLessonIndex !== null && completedLessonIndex !== undefined && !state.hafazniLessons.completedLessonIds.includes(String(completedLessonIndex))) {
+          state.hafazniLessons.completedLessonIds.push(String(completedLessonIndex));
+        }
+
+        // إطلاق تأثير الاحتفال (Confetti) عند إتمام الدرس بنجاح تام
+        triggerConfetti();
+
+        const nodes = computeLessons();
+        const nextIndex = (completedLessonIndex !== null && completedLessonIndex !== undefined)
+          ? completedLessonIndex + 1
+          : nodes.findIndex(n => n.id === completedLessonId) + 1;
+
+        const nextNode = nodes[nextIndex];
+        const nextAvailable = nextNode && getLessonStatus(nextNode) !== 'locked';
+
+        const currentCompletedNode = nodes.find(n => n.id === completedLessonId || n.index === completedLessonIndex);
+        el.completedLessonNumber.textContent = currentCompletedNode ? currentCompletedNode.title : 'الدرس';
+        el.lessonCompleteNote.textContent = 'أحسنت! أكملت الجلسة بنجاح.';
+        el.lessonCompleteNote.style.color = '';
+        el.lessonCompleteNote.style.display = 'block';
+
+        if (nextAvailable) {
+          el.nextLessonBtn.style.display = 'block';
+          el.nextLessonBtn.textContent = nextNode.type === 'checkpoint' ? '🏆 الانتقال للتقييم الشامل التالي' : `الانتقال إلى ${nextNode.title} 🚀`;
+          el.nextLessonBtn.dataset.nextNodeId = nextNode.id;
+          el.nextLessonBtn.dataset.nextNodeIndex = String(nextNode.index);
+        } else {
+          el.nextLessonBtn.style.display = 'none';
+        }
       }
     } else {
       el.lessonCompleteNote.style.display = 'none';
@@ -3401,13 +3382,14 @@
       showToast('🎉 رائع! لا توجد أخطاء في آخر جلسة مراجعة.', 'success');
       return;
     }
-    // بدء جلسة جديدة بالأخطاء فقط
+    // بدء جلسة جديدة بالأخطاء فقط (هذه الجلسة ستكون درس مراجعة صارم)
     const mistakeIds = [...state.hafazni.mistakes];
     // نعيد ضبط قائمة الأخطاء بعد بدء الجلسة
     state.hafazni.mistakes = [];
-    state.hafazni.activeLessonId = null; // جلسة مراجعة أخطاء، مش درس من الخريطة
-    state.hafazni.activeLessonIndex = null;
-    state.hafazni.isCheckpoint = false;
+    
+    // ملاحظة هامة: لا نحذف activeLessonId ولا activeLessonIndex
+    // حتى إذا أكمل المستخدم درس المراجعة بنجاح، يُعتبر أنه اجتاز التقييم/الدرس الأصلي!
+    state.hafazni.isCheckpoint = false; // نلغي كونه اختبار لمرة واحدة ليكون تدريباً صارماً
     initHafazniSession(mistakeIds);
   }
 
@@ -5147,19 +5129,11 @@
         saveState(true);
         updateStats();
 
-        if (session.isCheckpoint) {
-          session.currentIndex++;
-          if (session.currentIndex >= session.sessionWords.length) {
-            finishHafazniSession();
-            return;
-          }
-        } else {
-          // نقلها للتكرار في الجلسة العادية
-          const words = session.sessionWords;
-          const removed = words.splice(session.currentIndex, 1)[0];
-          const insertPos = Math.min(session.currentIndex + 1, words.length);
-          words.splice(insertPos, 0, removed);
-        }
+        // نقلها للتكرار في الجلسة العادية
+        const words = session.sessionWords;
+        const removed = words.splice(session.currentIndex, 1)[0];
+        const insertPos = Math.min(session.currentIndex + 1, words.length);
+        words.splice(insertPos, 0, removed);
       }
       renderHafazniQuestion();
       updateHafazniOverview();
